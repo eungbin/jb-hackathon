@@ -1,0 +1,15 @@
+{
+  "guide": "Evidence Pack 원본은 바로 재학습하지 않습니다. 비식별화, 라벨 검수 후 학습 후보로 활용합니다.",
+  "items": [
+    { "candidateId": "CP-LC-8945", "sourcePackId": "EP-2024-00892", "productTitle": "JB 청년우대 적금", "datasetType": "TRAINING", "redactionStatus": "REDACTED", "labelStatus": "APPROVED" },
+    { "candidateId": "CP-LC-9021", "sourcePackId": "EP-2024-00915", "productTitle": "종합부동산세 절세 가이드", "datasetType": "EVALUATION", "redactionStatus": "REDACTION_REQUIRED", "labelStatus": "PENDING" }
+  ],
+  "selectedCandidate": {
+    "candidateId": "CP-LC-8945",
+    "sourcePackId": "EP-2024-00892",
+    "score": "98.2%",
+    "originalText": "안녕하세요, 김철수 님. JB 청년우대 적금 가입을 위해 010-1234-5678로 연락드렸습니다. 계좌번호는 110-223-456789 입니다.",
+    "maskedText": "안녕하세요, [NAME_MASKED] 님. JB 청년우대 적금 가입을 위해 [PHONE_MASKED] 로 연락드렸습니다. 계좌번호는 [ACCOUNT_PATTERN_DETECTED] 입니다.",
+    "metadata": { "type": "Fine-tuning", "domain": "Banking / Savings", "aiConfidence": 0.96, "redaction": "Verified" }
+  }
+}

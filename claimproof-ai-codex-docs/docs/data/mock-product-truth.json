@@ -1,0 +1,20 @@
+{
+  "selectedProductId": "PRD-001",
+  "products": [
+    { "productId": "PRD-001", "productCode": "DEP-SAV-001", "productName": "JB 청년우대 적금", "category": "수신", "subCategory": "적립식 예금", "status": "ACTIVE" },
+    { "productId": "PRD-002", "productCode": "LOAN-CRD-002", "productName": "직장인 신용대출", "category": "여신", "subCategory": "가계대출", "status": "INACTIVE" },
+    { "productId": "PRD-003", "productCode": "TRUST-PEN-003", "productName": "연금저축 신탁", "category": "투자", "subCategory": "신탁상품", "status": "ACTIVE" }
+  ],
+  "version": {
+    "label": "v2024.06.01",
+    "status": "ACTIVE",
+    "approvedAt": "2024.06.01 14:30",
+    "approvedBy": "준법검사부 이효준",
+    "baseRate": "4.5% (변동)"
+  },
+  "facts": [
+    { "factId": "FACT-001", "factName": "최고 금리", "valueData": "연 5.0%", "condition": "우대금리 조건 충족 시", "sourceLocator": "상품설명서 p.2", "effectiveDate": "2024-06-01" },
+    { "factId": "FACT-002", "factName": "가입 대상", "valueData": "만 19세~34세", "condition": "개인 및 개인사업자", "sourceLocator": "약관 p.4", "effectiveDate": "2024-06-01" },
+    { "factId": "FACT-003", "factName": "중도해지 이율", "valueData": "약정 이율의 50%", "condition": "6개월 미만 유지 시", "sourceLocator": "금리표 p.1", "effectiveDate": "2024-06-01" }
+  ]
+}

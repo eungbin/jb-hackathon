@@ -1,0 +1,30 @@
+{
+  "packId": "EP-2024-00892",
+  "contentId": "CNT-10293",
+  "immutable": true,
+  "sealed": true,
+  "hash": "SHA-256:8f2a71d...e9b1d3f",
+  "productMetadata": {
+    "productName": "JB 청년우대 적금",
+    "ruleVersion": "v2.4.1-stable",
+    "sourceDocument": "RE-CORE-2024Q4",
+    "productFact": "FSS-2024-B-12",
+    "retentionGrade": "High"
+  },
+  "timeline": [
+    { "event": "상품 콘텐츠 등록", "timestamp": "2024.10.12 09:42:15", "actor": "김철수 (Marketing)", "system": "JB-24-YTH" },
+    { "event": "AI 사전 검토 완료", "timestamp": "2024.10.12 09:45:02", "actor": "Claude 3.5 Sonnet", "system": "Compliance Engine v2.4" },
+    { "event": "준법 심사 확정", "timestamp": "2024.10.12 14:20:55", "actor": "이영희 (Compliance Lead)", "system": "ClaimProof AI" },
+    { "event": "디지털 봉인", "timestamp": "2024.10.12 14:22:10", "actor": "Blockchain Ledger Timestamped", "system": "ClaimProof AI" }
+  ],
+  "claimResults": [
+    { "claim": "최대 연 5.5% 금리 제공 (우대 포함)", "basis": "상품 기준정보의 최고 금리와 일치함", "riskLevel": "LOW", "source": "Deposit_Product_Master_v2", "locator": "p.12, Sec 4.1" },
+    { "claim": "청년 누구나 조건 없이 가입", "basis": "가입 연령 제한 위반 및 타깃 불일치", "riskLevel": "CRITICAL", "source": "Eligibility_Criteria_2024", "locator": "p.3, Sec 1.2" },
+    { "claim": "만기 시 복리 이자 혜택", "basis": "복리 계산 방식에 대한 구체적 조건 고지 누락", "riskLevel": "MEDIUM", "source": "Interest_Calc_Manual_v1.2", "locator": "p.7, Formula 3-b" },
+    { "claim": "중도 해지 시에도 원금 100% 보장", "basis": "약관 제9조 원금 보장 조건과 일치함", "riskLevel": "LOW", "source": "Terms_and_Conditions_JB", "locator": "p.21, Article 9" }
+  ],
+  "finalComment": "JB 청년우대 적금 상품은 최대 연 5.5% 표기는 적정하나, 누구나 가입 문구는 소득 제한 및 연령 제한 조건이 누락되어 있어 금융소비자보호법 위반 소지가 큽니다. 해당 문구 삭제 또는 명확한 가입 자격 표기로 최종 승인 처리합니다.",
+  "decision": "CONDITIONALLY_APPROVED",
+  "reviewer": "Lee Young-Hee",
+  "signedAt": "2024.10.12 14:15:00 KST"
+}

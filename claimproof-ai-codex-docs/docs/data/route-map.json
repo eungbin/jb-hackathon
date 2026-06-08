@@ -1,0 +1,14 @@
+[
+  { "path": "/", "page": "RedirectToDashboard" },
+  { "path": "/dashboard", "page": "DashboardPage" },
+  { "path": "/content/new", "page": "ContentCreatePage" },
+  { "path": "/compliance-review", "page": "ComplianceReviewListPage" },
+  { "path": "/compliance-review/:reviewId", "page": "ComplianceReviewDetailPage" },
+  { "path": "/evidence-pack", "page": "EvidencePackListPage" },
+  { "path": "/evidence-pack/:packId", "page": "EvidencePackDetailPage" },
+  { "path": "/learning-loop", "page": "LearningLoopPage" },
+  { "path": "/product-truth", "page": "ProductTruthPage" },
+  { "path": "/product-truth/new", "page": "ProductCreatePage" },
+  { "path": "/rules-sources", "page": "RulesSourcesPage" },
+  { "path": "/pre-review", "page": "RedirectToComplianceReview" }
+]

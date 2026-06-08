@@ -1,0 +1,8 @@
+{
+  "items": [
+    { "packId": "EP-2024-00892", "contentId": "CNT-10293", "title": "[앱푸시] JB 청년우대 적금 리마인드", "productName": "JB 청년우대 적금", "channel": "APP_PUSH", "finalDecision": "CONDITIONALLY_APPROVED", "riskLevel": "HIGH", "finalizedAt": "2024.11.24 14:22:05", "reviewer": "이영희", "reviewerRole": "Compliance Lead", "learningStatus": "CANDIDATE_RAW" },
+    { "packId": "EP-2024-00891", "contentId": "CNT-10291", "title": "[배너] JB 첫사랑 적금 출시 기념", "productName": "JB 첫사랑 적금", "channel": "BANNER", "finalDecision": "APPROVED", "riskLevel": "LOW", "finalizedAt": "2024.11.23 18:05:12", "reviewer": "김철수", "reviewerRole": "Senior Associate", "learningStatus": "REDACTED" },
+    { "packId": "EP-2024-00890", "contentId": "CNT-10285", "title": "[SMS] 해외결제 5% 캐시백 이벤트", "productName": "JB 글로벌 카드", "channel": "SMS", "finalDecision": "REJECTED", "riskLevel": "CRITICAL", "finalizedAt": "2024.11.23 11:30:45", "reviewer": "박정훈", "reviewerRole": "Risk Director", "learningStatus": "EXCLUDED" }
+  ],
+  "total": 1248
+}

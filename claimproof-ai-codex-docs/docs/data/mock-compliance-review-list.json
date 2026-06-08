@@ -1,0 +1,15 @@
+{
+  "summary": {
+    "totalPending": 128,
+    "critical": 12,
+    "dueToday": 34,
+    "myRequests": 8
+  },
+  "items": [
+    { "reviewId": "REV-2024-00892", "contentId": "CNT-10293", "title": "[앱푸시] JB 청년우대 적금 출시 알림", "productName": "JB 청년우대 적금", "channel": "APP_PUSH", "riskLevel": "CRITICAL", "claimCount": 24, "requester": "김철수", "department": "마케팅팀", "requestedAt": "2024.11.18", "plannedPublishDate": "2024.11.25", "status": "PENDING" },
+    { "reviewId": "REV-2024-00889", "contentId": "CNT-10291", "title": "[인스타] 마이핏 정기예금 홍보 이벤트", "productName": "마이핏 정기예금", "channel": "SNS", "riskLevel": "HIGH", "claimCount": 12, "requester": "이영희", "department": "브랜드팀", "requestedAt": "2024.11.17", "plannedPublishDate": "2024.11.24", "status": "PENDING" },
+    { "reviewId": "REV-2024-00885", "contentId": "CNT-10285", "title": "[홈페이지] 퇴직연금 IRP 가입 가이드", "productName": "퇴직연금 IRP", "channel": "BANNER", "riskLevel": "MEDIUM", "claimCount": 18, "requester": "박지민", "department": "상품운영팀", "requestedAt": "2024.11.17", "plannedPublishDate": "2024.11.23", "status": "PENDING" },
+    { "reviewId": "REV-2024-00882", "contentId": "CNT-10282", "title": "[문자] 신규 서비스 약관 개정 안내", "productName": "전체 서비스", "channel": "SMS", "riskLevel": "LOW", "claimCount": 8, "requester": "최민수", "department": "법무팀", "requestedAt": "2024.11.16", "plannedPublishDate": "2024.11.22", "status": "PENDING" },
+    { "reviewId": "REV-2024-00880", "contentId": "CNT-10280", "title": "[배너] 연금저축 펀드 수익률 광고", "productName": "연금저축 펀드", "channel": "BANNER", "riskLevel": "CRITICAL", "claimCount": 15, "requester": "정수아", "department": "자산운용팀", "requestedAt": "2024.11.16", "plannedPublishDate": "2024.11.21", "status": "PENDING" }
+  ]
+}

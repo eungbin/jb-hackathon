@@ -1,0 +1,8 @@
+{
+  "events": [
+    { "eventId": "LOG-001", "entityType": "CONTENT", "entityId": "CNT-10293", "action": "CONTENT_SUBMITTED", "actor": "김철수", "timestamp": "2024.10.12 09:42:15" },
+    { "eventId": "LOG-002", "entityType": "REVIEW", "entityId": "REV-2024-00892", "action": "AI_PRE_REVIEW_COMPLETED", "actor": "System", "timestamp": "2024.10.12 09:45:02" },
+    { "eventId": "LOG-003", "entityType": "REVIEW", "entityId": "REV-2024-00892", "action": "HUMAN_DECISION_SAVED", "actor": "이영희", "timestamp": "2024.10.12 14:20:55" },
+    { "eventId": "LOG-004", "entityType": "EVIDENCE_PACK", "entityId": "EP-2024-00892", "action": "PACK_SEALED", "actor": "System", "timestamp": "2024.10.12 14:22:10" }
+  ]
+}

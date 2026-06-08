@@ -1,0 +1,11 @@
+{
+  "rules": [
+    { "ruleId": "INS-2024-001", "name": "수익률 고지 누락 체크", "severity": "HIGH", "triggerKeywords": ["수익률", "확정적"], "requiredDisclosures": "예상 수익률 산정 근거 및 유의사항 고지", "logic": "IF contains(YIELD_KEYWORD) THEN require(YIELD_DISCLOSURE)" },
+    { "ruleId": "FIN-2024-042", "name": "필수 고지사항 누락 체크", "severity": "HIGH", "triggerKeywords": ["수익률", "원금", "보장"], "requiredDisclosures": "이 상품은 예금자보호법에 따라 보호 여부가 달라질 수 있습니다.", "logic": "IF presence(KEYWORD_LIST) AND NOT presence(REQUIRED_DISCLOSURE) THEN ISSUE_ALERT(severity:HIGH, tag:'MISSING_NOTICE')" },
+    { "ruleId": "GEN-2024-089", "name": "최상급 표현 사용 제한", "severity": "MEDIUM", "triggerKeywords": ["최상급", "1위"], "requiredDisclosures": "근거 자료 출처 표기", "logic": "IF contains(SUPERLATIVE) THEN require(SOURCE_LOCATOR)" }
+  ],
+  "sourceDocuments": [
+    { "documentId": "SRC-001", "title": "금융소비자보호법 2024", "syncedAt": "2024-05-10 14:20", "status": "INDEXED" },
+    { "documentId": "SRC-002", "title": "생명보험 약관 가이드", "syncedAt": "2024-05-10 16:45", "status": "INDEXED" }
+  ]
+}

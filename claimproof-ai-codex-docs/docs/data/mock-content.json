@@ -1,0 +1,30 @@
+{
+  "draftRequest": {
+    "title": "JB 청년우대 적금 하계 프로모션 푸시",
+    "originalText": "누구나 받을 수 있는 최고 연 7% 청년적금 혜택을 지금 확인해보세요.",
+    "productCategory": "적금/예금",
+    "productId": "DEP-SAV-001",
+    "productName": "JB 청년우대 적금",
+    "targetCustomers": ["청년 고객"],
+    "language": "ko",
+    "urgency": "NORMAL",
+    "channels": ["APP_PUSH"],
+    "plannedPublishDate": "2024.06.01",
+    "ragIndexVersion": "v2024.11.05",
+    "appliedRuleCount": 142
+  },
+  "productTruthSummary": {
+    "verified": true,
+    "productName": "JB 청년우대 적금",
+    "productId": "DEP-SAV-001",
+    "version": "v202606",
+    "eligibility": "만 19~34세",
+    "maxRate": "연 7.0%",
+    "monthlyLimit": "월 30만 원",
+    "sourceDocuments": ["상품설명서.pdf", "약관_청년우대.pdf", "금리표_202406.xlsx"]
+  },
+  "checklist": [
+    { "title": "금리 오인 방지", "description": "최고 금리 표기 시 반드시 기본 금리와 우대 조건을 명시해야 합니다.", "tone": "warning" },
+    { "title": "대상 고객 확인", "description": "청년우대 조건인 연령 제한을 명확히 명시했는지 확인합니다.", "tone": "info" }
+  ]
+}

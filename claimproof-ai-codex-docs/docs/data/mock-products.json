@@ -1,0 +1,7 @@
+{
+  "products": [
+    { "productId": "PRD-001", "productCode": "DEP-SAV-001", "productName": "JB 청년우대 적금", "category": "수신", "subCategory": "적립식 예금", "status": "ACTIVE" },
+    { "productId": "PRD-002", "productCode": "LOAN-CRD-002", "productName": "직장인 신용대출", "category": "여신", "subCategory": "가계대출", "status": "INACTIVE" },
+    { "productId": "PRD-003", "productCode": "TRUST-PEN-003", "productName": "연금저축 신탁", "category": "투자", "subCategory": "신탁상품", "status": "ACTIVE" }
+  ]
+}

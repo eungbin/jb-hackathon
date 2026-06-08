@@ -1,0 +1,51 @@
+import { describe, expect, it } from 'vitest'
+
+const pageSources = import.meta.glob('../domains/**/pages/*.tsx', {
+  eager: true,
+  import: 'default',
+  query: '?raw',
+}) as Record<string, string>
+
+describe('table filter behavior', () => {
+  it('uses submit-applied filters for Learning Loop', () => {
+    const source = pageSources['../domains/learning-loop/pages/LearningLoopPage.tsx']
+
+    expect(source).toContain('const [appliedFilters, setAppliedFilters]')
+    expect(source).toContain('const applyFilters = (event?: FormEvent<HTMLFormElement>)')
+    expect(source).toContain('onSubmit={applyFilters}')
+    expect(source).toContain('appliedFilters.query')
+    expect(source).toContain('appliedFilters.loadStatus')
+    expect(source).toContain('type="submit">조회')
+  })
+
+  it('uses submit-applied filters for Evidence Pack archive', () => {
+    const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
+
+    expect(source).toContain('const [appliedFilters, setAppliedFilters]')
+    expect(source).toContain('const applyFilters = (event?: FormEvent<HTMLFormElement>)')
+    expect(source).toContain('onSubmit={applyFilters}')
+    expect(source).toContain('appliedFilters.query')
+    expect(source).toContain('appliedFilters.reviewer')
+    expect(source).toContain('type="submit">조회')
+  })
+
+  it('uses submit-applied filters for Rules & Sources', () => {
+    const source = pageSources['../domains/rules-sources/pages/RulesSourcesPage.tsx']
+
+    expect(source).toContain('const [appliedFilters, setAppliedFilters]')
+    expect(source).toContain('const applyFilters = (event?: FormEvent<HTMLFormElement>)')
+    expect(source).toContain('onSubmit={applyFilters}')
+    expect(source).toContain('appliedFilters.query')
+    expect(source).toContain('appliedFilters.triggerKeywords')
+    expect(source).toContain('type="submit">조회')
+  })
+
+  it('labels the Compliance Review submit action as 조회', () => {
+    const source = pageSources['../domains/compliance-review/pages/ComplianceReviewListPage.tsx']
+
+    expect(source).toContain('const [appliedFilters, setAppliedFilters]')
+    expect(source).toContain('onSubmit={applyFilters}')
+    expect(source).toContain('type="submit">조회')
+    expect(source).not.toContain('type="submit">적용하기')
+  })
+})

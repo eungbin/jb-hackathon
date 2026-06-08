@@ -1,0 +1,43 @@
+{
+  "reviewId": "REV-2024-00892",
+  "contentId": "CNT-10293",
+  "contentTitle": "JB 청년우대 적금 출시 알림",
+  "productName": "JB 청년우대 적금",
+  "riskScore": 92,
+  "overallRisk": "CRITICAL",
+  "summaryRisks": ["광고 금리 문구 사용", "수익률 과장 위험"],
+  "evidenceSources": [
+    { "type": "Product Truth", "title": "상품 기준정보", "connectedClaims": 3 },
+    { "type": "Regulation", "title": "금융소비자보호법 시행령", "connectedClaims": 1 },
+    { "type": "Internal Checklist", "title": "금융광고 자율심의 규정", "connectedClaims": 2 }
+  ],
+  "claims": [
+    { "claimId": "CLM-001", "statement": "누구나 받을 수 있다", "claimType": "ELIGIBILITY", "verificationStatus": "CONTRADICTED", "riskLevel": "CRITICAL", "actionLabel": "근거 확인" },
+    { "claimId": "CLM-002", "statement": "최고 연 7%", "claimType": "RATE", "verificationStatus": "SUPPORTED_WITH_CONDITION_MISSING", "riskLevel": "HIGH", "actionLabel": "근거 확인" },
+    { "claimId": "CLM-003", "statement": "청년적금 혜택", "claimType": "BENEFIT", "verificationStatus": "NEEDS_DISCLOSURE", "riskLevel": "MEDIUM", "actionLabel": "근거 확인" }
+  ],
+  "originalText": "본 금융상품은 누구나 받을 수 있다는 파격적인 조건을 제시하고 있습니다. 특히 최고 연 7%의 수익률을 보장하며, 가입 즉시 다양한 청년적금 혜택을 누리실 수 있습니다.",
+  "selectedClaimEvidence": {
+    "claimId": "CLM-001",
+    "statement": "누구나 받을 수 있다",
+    "riskLevel": "CRITICAL",
+    "productTruth": {
+      "productName": "JB 청년우대 적금",
+      "productCode": "DEP-SAV-001",
+      "version": "v202606",
+      "baseRate": "연 3.0%",
+      "maxRate": "최고 연 7.0%",
+      "eligibility": "만 19~34세",
+      "monthlyLimit": "월 30만 원",
+      "sourceLocator": "금리표 2026.06 p.2"
+    },
+    "rule": {
+      "ruleId": "PE_RATE_001",
+      "severity": "HIGH",
+      "source": "금융광고 자율심의 규정 v1.2",
+      "requiredDisclosure": "기본금리, 우대조건, 가입 대상, 납입 한도, 적용 기간을 함께 표시"
+    },
+    "aiSummary": "해당 표현은 모든 고객이 가입 가능하다고 오인할 수 있습니다. 실제 상품 기준정보에는 만 19~34세 조건이 존재합니다.",
+    "suggestedRevision": "만 19~34세 조건 충족 고객에 한해 가입 가능한 청년우대 적금입니다."
+  }
+}

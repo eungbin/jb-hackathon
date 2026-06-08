@@ -1,0 +1,36 @@
+{
+  "productBasicInfo": {
+    "productName": "JB 청년우대 적금",
+    "productCode": "DEP-SAV-001",
+    "category": "수신",
+    "subCategory": "적립식 예금",
+    "ownerDepartment": "수신상품팀",
+    "productOwner": "김상품",
+    "description": "청년층의 자산 형성을 지원하기 위한 고금리 우대 상품으로, 근로자 및 저소득 청년 대상 특별 우대 금리를 제공합니다."
+  },
+  "versionPeriod": {
+    "versionLabel": "v2026.06.01",
+    "baseDate": "2026.06.01",
+    "effectiveStartDate": "2026.06.01",
+    "effectiveEndDate": "",
+    "changeReason": "신규 상품 출시"
+  },
+  "sourceDocuments": [
+    { "documentId": "DOC-001", "documentType": "PRODUCT_DESCRIPTION", "fileName": "JB청년우대적금_상품설명서_v1.0.pdf", "version": "1.0", "effectiveStartDate": "2026.06.01", "inputStatus": "COMPLETE" },
+    { "documentId": "DOC-002", "documentType": "TERMS", "fileName": "특약 및 약관 통합본_2026.pdf", "version": "2.3", "effectiveStartDate": "2026.01.01", "inputStatus": "COMPLETE" },
+    { "documentId": "DOC-003", "documentType": "RATE_TABLE", "fileName": "2026년_상반기_수신금리표.xlsx", "version": "6.1", "effectiveStartDate": "2026.06.01", "inputStatus": "MISSING_REQUIRED" }
+  ],
+  "productFacts": [
+    { "factId": "PF-001", "factType": "RATE", "factName": "기본 금리", "value": "4.5", "unit": "% p.a", "displayValue": "연 4.5%", "condition": "없음", "sourceDocumentId": "DOC-003", "sourceLocator": "금리표 p.1", "effectiveStartDate": "2026.06.01", "inputStatus": "COMPLETE" },
+    { "factId": "PF-002", "factType": "ELIGIBILITY", "factName": "가입 연령", "value": "19~34", "unit": "세", "displayValue": "만 19~34세", "condition": "만 나이 기준", "sourceDocumentId": "DOC-001", "sourceLocator": "상품설명서 p.3", "effectiveStartDate": "2026.06.01", "inputStatus": "COMPLETE" },
+    { "factId": "PF-003", "factType": "LIMIT", "factName": "월 납입 한도", "value": "500,000", "unit": "KRW", "displayValue": "월 500,000원", "condition": "없음", "sourceDocumentId": "", "sourceLocator": "", "effectiveStartDate": "2026.06.01", "inputStatus": "MISSING_REQUIRED" }
+  ],
+  "validation": {
+    "criticalIssueCount": 2,
+    "warningCount": 5,
+    "issues": [
+      { "id": "ISSUE-001", "severity": "CRITICAL", "message": "월 납입 한도 Source Locator 누락", "target": "PF-003" },
+      { "id": "ISSUE-002", "severity": "CRITICAL", "message": "적용 시작일 정합성 확인 필요", "target": "DOC-003" }
+    ]
+  }
+}
