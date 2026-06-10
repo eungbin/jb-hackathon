@@ -17,7 +17,9 @@ describe('evidence pack detail design', () => {
 
     expect(detailSource).toContain('function AuditTimeline')
     expect(detailSource).toContain('function ProductMetadataPanel')
-    expect(detailSource).toContain('증적 데이터 보안 등급')
+    expect(detailSource).toContain('fetchEvidencePackResultDetail')
+    expect(detailSource).toContain('product.productName')
+    expect(detailSource).not.toContain('finalEvidencePackData')
     expect(detailSource).not.toContain('Record Integrity Hash')
     expect(detailSource).not.toContain('finalEvidencePackData.hash')
     expect(detailSource).not.toContain('Object.entries(finalEvidencePackData.productMetadata)')
@@ -36,7 +38,7 @@ describe('evidence pack detail design', () => {
 
     expect(detailSource).toContain('function FinalNotesSection')
     expect(detailSource).toContain('Compliance Review Final Comments')
-    expect(detailSource).toContain('Digital Signature Certificate verified')
+    expect(detailSource).toContain('finalComment')
     expect(detailSource).not.toContain('<Card title="Compliance Review Final Comments">')
     expect(detailSource).not.toContain('<Card title="Signature & Final Decision">')
     expect(detailSource).not.toContain('Sig:')

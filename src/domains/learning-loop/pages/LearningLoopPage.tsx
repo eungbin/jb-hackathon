@@ -1,10 +1,11 @@
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { learningData } from '../../../data/mockData'
 import { Button, Card, DataTable, Drawer, Field, PageHeader, SelectField } from '../../../components/ui'
 import type { DataTableSortDirection } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
+import { fetchLearningList, processLearning } from '../api'
+import type { LearningLoopRow, LearningProcessStatus } from '../api'
 
 const pageSize = 5
 type LearningSortKey = 'candidateId' | 'sourcePackId' | 'productTitle' | 'loadStatus'
@@ -26,46 +27,60 @@ const loadStatusLabels = {
 
 const learningTableHeaders = [
   { label: 'Candidate ID', sortKey: 'candidateId' },
-  { label: 'Evidence Pack ID', sortKey: 'sourcePackId' },
-  { label: '상품명', sortKey: 'productTitle' },
+  { label: '콘텐츠 ID', sortKey: 'sourcePackId' },
+  { label: '콘텐츠 제목', sortKey: 'productTitle' },
   { label: '적재 상태', sortKey: 'loadStatus' },
   { label: '액션', sortable: false },
 ]
 
-function getSelectedCandidateDetails(selectedCandidateId: string | null) {
-  if (!selectedCandidateId) {
-    return null
-  }
-
-  const queueItem = learningData.items.find((candidate) => candidate.candidateId === selectedCandidateId)
-
-  if (!queueItem) {
-    return null
-  }
-
-  return {
-    ...learningData.selectedCandidate,
-    candidateId: queueItem.candidateId,
-    sourcePackId: queueItem.sourcePackId,
-    loadStatus: queueItem.loadStatus,
-    metadata: learningData.selectedCandidate.metadata,
-  }
-}
-
 export function LearningLoopPage() {
+  const [items, setItems] = useState<LearningLoopRow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [statusMessage, setStatusMessage] = useState('')
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
   const [filters, setFilters] = useState<LearningFilters>(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState<LearningFilters>(initialFilters)
   const [currentPage, setCurrentPage] = useState(1)
   const [sortKey, setSortKey] = useState<LearningSortKey | null>(null)
   const [sortDirection, setSortDirection] = useState<DataTableSortDirection>(null)
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null)
-  const selectedCandidate = getSelectedCandidateDetails(selectedCandidateId)
+  const selectedCandidate = selectedCandidateId ? items.find((candidate) => candidate.candidateId === selectedCandidateId) ?? null : null
+  const selectedCandidateProcessed = selectedCandidate ? selectedCandidate.loadStatus === 'APPROVED' || selectedCandidate.loadStatus === 'REJECTED' : false
   const openCandidateDetails = (candidateId: string) => setSelectedCandidateId(candidateId)
   const closeCandidateDetails = () => setSelectedCandidateId(null)
   const setFilter = (field: keyof LearningFilters, value: string) => {
     setFilters((current) => ({ ...current, [field]: value }))
   }
-  const filteredItems = learningData.items.filter((candidate) => {
+
+  useEffect(() => {
+    let cancelled = false
+
+    setIsLoading(true)
+    fetchLearningList().then((nextItems) => {
+      if (cancelled) {
+        return
+      }
+
+      setItems(nextItems)
+      setErrorMessage('')
+    }).catch(() => {
+      if (!cancelled) {
+        setErrorMessage('Learning Loop 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      }
+    }).finally(() => {
+      if (!cancelled) {
+        setIsLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [reloadKey])
+
+  const filteredItems = items.filter((candidate) => {
     const query = appliedFilters.query.trim().toLowerCase()
     const searchableText = [candidate.candidateId, candidate.sourcePackId, candidate.productTitle].join(' ').toLowerCase()
 
@@ -92,6 +107,25 @@ export function LearningLoopPage() {
     setAppliedFilters(initialFilters)
     setCurrentPage(1)
   }
+  const processSelectedCandidate = async (learningStatus: LearningProcessStatus) => {
+    if (!selectedCandidate) {
+      return
+    }
+
+    setIsProcessing(true)
+    setErrorMessage('')
+
+    try {
+      await processLearning(selectedCandidate.learningId, learningStatus)
+      setStatusMessage(learningStatus === 'APPROVED' ? 'Learning Loop 후보를 승인했습니다.' : 'Learning Loop 후보를 거절했습니다.')
+      closeCandidateDetails()
+      setReloadKey((current) => current + 1)
+    } catch {
+      setErrorMessage('Learning Loop 처리 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   return (
     <div className={uiTokens.spacing.stack}>
@@ -101,8 +135,15 @@ export function LearningLoopPage() {
         description="Evidence Pack 기반 참조 문서의 적재 승인 상태를 관리합니다."
       />
       <Card className={`mb-6 ${uiTokens.color.primaryBorder} ${uiTokens.color.primarySurface}`} title="데이터 활용 가이드">
-        <p className={`${uiTokens.typography.body} ${uiTokens.color.primary}`}>{learningData.guide}</p>
+        <p className={`${uiTokens.typography.body} ${uiTokens.color.primary}`}>Evidence Pack 기반의 학습 후보 데이터를 검토하고 적재 승인 상태를 관리합니다.</p>
       </Card>
+      {(isLoading || errorMessage || statusMessage) && (
+        <div className={`${uiTokens.radius.panel} border ${errorMessage ? 'border-red-200 bg-red-50' : uiTokens.color.border} ${uiTokens.spacing.cardCompact}`}>
+          <p className={`${uiTokens.typography.body} ${errorMessage ? uiTokens.color.danger : uiTokens.color.bodyText}`}>
+            {errorMessage || statusMessage || 'Learning Loop 목록을 불러오는 중입니다.'}
+          </p>
+        </div>
+      )}
       <DataTable
         className={`overflow-hidden ${uiTokens.radius.panel} border ${uiTokens.color.border} ${uiTokens.color.surface} ${uiTokens.shadow.panel}`}
         filters={
@@ -141,25 +182,32 @@ export function LearningLoopPage() {
           setSortDirection(nextSortDirection)
         }}
       >
-          {paginatedItems.map((candidate) => (
-            <tr key={candidate.candidateId}>
-              <td className={`${uiTokens.spacing.tableCellRelaxed} font-mono text-xs`}>{candidate.candidateId}</td>
-              <td className={uiTokens.spacing.tableCellRelaxed}>
-                <Link className={uiTokens.typography.linkText} to={`/evidence-pack/${candidate.sourcePackId}`}>
-                  {candidate.sourcePackId}
-                </Link>
-              </td>
-              <td className={uiTokens.spacing.tableCellRelaxed}>
-                <Link className={uiTokens.typography.linkText} to="/product-truth">
-                  {candidate.productTitle}
-                </Link>
-              </td>
-              <td className={uiTokens.spacing.tableCellRelaxed}>{loadStatusLabels[candidate.loadStatus]}</td>
-              <td className={uiTokens.spacing.tableCellRelaxed}>
-                <Button variant="secondary" onClick={() => openCandidateDetails(candidate.candidateId)}>상세보기</Button>
-              </td>
-            </tr>
-          ))}
+        {paginatedItems.map((candidate) => (
+          <tr key={candidate.candidateId}>
+            <td className={`${uiTokens.spacing.tableCellRelaxed} font-mono text-xs`}>{candidate.candidateId}</td>
+            <td className={uiTokens.spacing.tableCellRelaxed}>
+              <Link className={uiTokens.typography.linkText} to={`/evidence-pack/${candidate.comId}`}>
+                {candidate.sourcePackId}
+              </Link>
+            </td>
+            <td className={uiTokens.spacing.tableCellRelaxed}>
+              <Link className={uiTokens.typography.linkText} to="/product-truth">
+                {candidate.productTitle}
+              </Link>
+            </td>
+            <td className={uiTokens.spacing.tableCellRelaxed}>{loadStatusLabels[candidate.loadStatus]}</td>
+            <td className={uiTokens.spacing.tableCellRelaxed}>
+              <Button variant="secondary" onClick={() => openCandidateDetails(candidate.candidateId)}>상세보기</Button>
+            </td>
+          </tr>
+        ))}
+        {paginatedItems.length === 0 && (
+          <tr>
+            <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={5}>
+              표시할 Learning Loop 후보가 없습니다.
+            </td>
+          </tr>
+        )}
       </DataTable>
       <Drawer
         title="Candidate Details"
@@ -167,10 +215,14 @@ export function LearningLoopPage() {
         onClose={closeCandidateDetails}
         width="sm"
         footer={
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="secondary" onClick={closeCandidateDetails}>수정 요청</Button>
-            <Button>후보 승인</Button>
-          </div>
+          selectedCandidateProcessed && selectedCandidate ? (
+            <Button className="w-full" disabled>{selectedCandidate.loadStatus === 'APPROVED' ? '승인됨' : '거절됨'}</Button>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="secondary" disabled={isProcessing} onClick={() => processSelectedCandidate('REJECT')}>거절</Button>
+              <Button disabled={isProcessing} onClick={() => processSelectedCandidate('APPROVED')}>승인</Button>
+            </div>
+          )
         }
       >
         {selectedCandidate && (
@@ -179,8 +231,8 @@ export function LearningLoopPage() {
               <p className={`font-mono text-sm font-bold ${uiTokens.color.primary}`}>{selectedCandidate.candidateId}</p>
               <p className={`mt-2 ${uiTokens.typography.helper}`}>Score {selectedCandidate.score}</p>
             </Card>
-            <Card title="Source Evidence Pack">
-              <Link className={uiTokens.typography.linkText} to={`/evidence-pack/${selectedCandidate.sourcePackId}`}>
+            <Card title="연결 콘텐츠">
+              <Link className={uiTokens.typography.linkText} to={`/evidence-pack/${selectedCandidate.comId}`}>
                 {selectedCandidate.sourcePackId}
               </Link>
             </Card>
@@ -190,22 +242,25 @@ export function LearningLoopPage() {
                 <pre className={`mt-3 whitespace-pre-wrap break-words font-mono text-xs leading-5 ${uiTokens.color.headingText}`}>
                   {JSON.stringify({
                     candidate_id: selectedCandidate.candidateId,
-                    source_evidence_pack_id: selectedCandidate.sourcePackId,
-                    document_type: 'reference_document',
+                    source_content_id: selectedCandidate.sourcePackId,
+                    compliance_id: selectedCandidate.comId,
+                    document_type: 'learning_candidate',
                     load_status: loadStatusLabels[selectedCandidate.loadStatus],
-                    masked_text: selectedCandidate.maskedText,
+                    learning_content: selectedCandidate.learningContent,
                   }, null, 2)}
                 </pre>
               </div>
             </Card>
             <Card title="적재 문서 Metadata">
               <dl className="grid gap-2 text-sm">
-                {Object.entries(selectedCandidate.metadata).map(([key, value]) => (
-                  <div key={key} className="flex justify-between gap-4">
-                    <dt className={uiTokens.color.mutedText}>{key}</dt>
-                    <dd className={`font-semibold ${uiTokens.color.headingText}`}>{String(value)}</dd>
-                  </div>
-                ))}
+                <div className="flex justify-between gap-4">
+                  <dt className={uiTokens.color.mutedText}>contentTitle</dt>
+                  <dd className={`font-semibold ${uiTokens.color.headingText}`}>{selectedCandidate.productTitle}</dd>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <dt className={uiTokens.color.mutedText}>learningId</dt>
+                  <dd className={`font-semibold ${uiTokens.color.headingText}`}>{selectedCandidate.learningId}</dd>
+                </div>
               </dl>
             </Card>
           </div>

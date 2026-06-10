@@ -29,6 +29,22 @@ describe('table filter behavior', () => {
     expect(source).toContain('type="submit">조회')
   })
 
+  it('loads Evidence Pack archive rows from the results API', () => {
+    const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
+
+    expect(source).toContain('fetchEvidencePackResults')
+    expect(source).toContain('const [items, setItems]')
+    expect(source).not.toContain('evidencePackListData')
+    expect(source).toContain('comStatus')
+    expect(source).toContain('learningStatus')
+  })
+
+  it('links Evidence Pack detail with compliance id for the detail API', () => {
+    const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
+
+    expect(source).toContain('to={`/evidence-pack/${pack.comId}`}')
+  })
+
   it('uses submit-applied filters for Rules & Sources', () => {
     const source = pageSources['../domains/rules-sources/pages/RulesSourcesPage.tsx']
 

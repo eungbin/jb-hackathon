@@ -42,20 +42,31 @@ const validForm = (): ProductCreateForm => ({
 })
 
 describe('validateProductCreate', () => {
-  it('필수 상품 정보가 비어 있으면 오류를 반환한다', () => {
+  it('API 필수 상품 정보가 비어 있으면 오류를 반환한다', () => {
     const form = validForm()
     form.productName = ''
-    form.productFacts[0] = { ...form.productFacts[0], sourceLocator: '' }
+    form.productCode = ''
+    form.category = ''
+    form.subCategory = ''
+    form.description = ''
 
     const result = validateProductCreate(form)
 
     expect(result.ok).toBe(false)
     expect(result.errors).toContain('상품명을 입력해 주세요.')
-    expect(result.errors).toContain('Product Fact의 Source Locator를 입력해 주세요.')
+    expect(result.errors).toContain('상품 코드를 입력해 주세요.')
+    expect(result.errors).toContain('상품 카테고리를 입력해 주세요.')
+    expect(result.errors).toContain('상품 설명을 입력해 주세요.')
   })
 
-  it('모든 필수 정보가 있으면 등록 가능하다', () => {
-    const result = validateProductCreate(validForm())
+  it('근거 문서와 Product Fact가 없어도 상품 기본정보만 있으면 등록 가능하다', () => {
+    const form = {
+      ...validForm(),
+      sourceDocuments: [],
+      productFacts: [],
+    }
+
+    const result = validateProductCreate(form)
 
     expect(result).toEqual({ ok: true, errors: [] })
   })

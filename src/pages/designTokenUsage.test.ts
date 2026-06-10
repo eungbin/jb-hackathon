@@ -104,21 +104,22 @@ describe('second-pass design token usage', () => {
 
     expect(contentSource).not.toContain('SegmentedLanguage')
     expect(contentSource).not.toContain('language:')
-    expect(contentSource).toContain('productIdOptions')
+    expect(contentSource).toContain('ProductSelectField')
     expect(contentSource).toContain('label="상품 ID"')
     expect(contentSource).toContain('type="date"')
     expect(contentSource).toContain('min={todayDate}')
     expect(contentSource).toContain('showPicker')
   })
 
-  it('content registration scopes product ids by selected product category', () => {
+  it('content registration scopes fetched products by selected product category', () => {
     const contentSource = secondPassSources['../domains/content/pages/ContentCreatePage.tsx']
 
-    expect(contentSource).toContain('productIdOptionsByCategory')
-    expect(contentSource).toContain('selectedProductIdOptions')
+    expect(contentSource).toContain("const productCategoryOptions = ['예금', '적금', '대출']")
+    expect(contentSource).toContain('fetchProductInfo')
+    expect(contentSource).toContain('selectedProductOptions')
     expect(contentSource).toContain('updateProductCategory')
-    expect(contentSource).toContain('nextOptions.includes(current.productId)')
-    expect(contentSource).not.toContain('const productIdOptions =')
+    expect(contentSource).toContain('product.productCategory === request.productCategory')
+    expect(contentSource).not.toContain('productIdOptionsByCategory')
   })
 
   it('content registration does not collect target customers', () => {
@@ -182,6 +183,34 @@ describe('second-pass design token usage', () => {
     expect(detailSource).toContain('memo(function OriginalDocument')
     expect(detailSource).toContain('memo(function EvidenceDrawer')
     expect(detailSource).toContain('useCallback')
+  })
+
+  it('compliance review detail closes the evidence drawer after applying a claim comment', () => {
+    const detailSource = secondPassSources['../domains/compliance-review/pages/ComplianceReviewDetailPage.tsx']
+
+    expect(detailSource).toMatch(/const appendSelectedClaimReviewComment = useCallback\(\(\) => \{[\s\S]*setComment\(\(value\) => \{[\s\S]*appendReviewComment\(value, buildClaimReviewComment\(selectedClaim\)\)[\s\S]*setDrawerOpen\(false\)[\s\S]*\}, \[comment, selectedClaim\]\)/)
+  })
+
+  it('compliance review detail blocks duplicate claim comment application', () => {
+    const detailSource = secondPassSources['../domains/compliance-review/pages/ComplianceReviewDetailPage.tsx']
+
+    expect(detailSource).toContain('hasAppliedClaimReviewComment')
+    expect(detailSource).toContain('selectedClaimCommentApplied')
+    expect(detailSource).toContain('disabled={claimCommentApplied}')
+    expect(detailSource).toContain("claimCommentApplied ? '이미 반영됨' : '검토 의견에 반영'")
+  })
+
+  it('compliance review detail submits the final decision to the process API', () => {
+    const detailSource = secondPassSources['../domains/compliance-review/pages/ComplianceReviewDetailPage.tsx']
+
+    expect(detailSource).toContain('useAuth')
+    expect(detailSource).toContain('processComplianceReview')
+    expect(detailSource).toContain('getComplianceProcessStatus')
+    expect(detailSource).toContain('submitFinalDecision')
+    expect(detailSource).toContain('comReviewComments: comment.trim()')
+    expect(detailSource).toContain('comStatus')
+    expect(detailSource).toContain('onSubmitFinalDecision={submitFinalDecision}')
+    expect(detailSource).toContain('최종 판단 제출')
   })
 
   it('content registration lets channel selection span the full form width', () => {

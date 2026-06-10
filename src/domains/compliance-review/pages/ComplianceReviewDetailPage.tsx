@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
   BookOpen,
@@ -16,36 +16,16 @@ import { Button, DataTable, Drawer, PageHeader } from '../../../components/ui'
 import type { DataTableSortDirection } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import type { RiskLevel } from '../../../types'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { useAuth } from '../../auth/AuthContext'
+import { fetchComplianceReviewDetail, processComplianceReview } from '../api'
+import type { ComplianceReviewClaim, ComplianceReviewDetail, ComplianceReviewEvidenceSource } from '../api'
+import { appendReviewComment, buildClaimReviewComment, hasAppliedClaimReviewComment } from '../reviewComment'
+import { decisions, getComplianceProcessStatus } from '../reviewDecision'
+import type { Decision } from '../reviewDecision'
 
-type ClaimEvidence = {
-  productTruth: Record<string, string>
-  rule: {
-    ruleId: string
-    requiredItems: string[]
-    severity: string
-    index: string
-    source: string
-  }
-  aiSummary: string
-  revision: {
-    original: string
-    suggested: string
-    additionalNotice: string
-    reason: string
-  }
-}
+type ClaimRow = ComplianceReviewClaim
 
-type ClaimRow = {
-  claimId: string
-  statement: string
-  type: string
-  verificationResult: string
-  riskLevel: RiskLevel
-  riskLabel: string
-  evidence: ClaimEvidence
-}
-
-type Decision = '승인' | '조건부 승인' | '수정 요청' | '반려' | '추가 자료 요청'
 type ClaimSortKey = 'statement' | 'type' | 'verificationResult' | 'riskLevel'
 
 const claimTableHeaders = [
@@ -63,137 +43,17 @@ const claimRiskSortRank: Record<RiskLevel, number> = {
   CRITICAL: 4,
 }
 
-const claims: ClaimRow[] = [
-  {
-    claimId: 'CLM-001',
-    statement: "'누구나 받을 수 있다'",
-    type: 'ELIGIBILITY',
-    verificationResult: '실제 조건과 충돌',
-    riskLevel: 'CRITICAL',
-    riskLabel: '심각',
-    evidence: {
-      productTruth: {
-        상품명: 'JB 청년우대 적금',
-        '상품 버전': 'DEP-SAV-001-v202606',
-        기본금리: '연 3.0%',
-        최고금리: '최고 연 7.0%',
-        '가입 대상': '만 19~34세',
-        '납입 한도': '월 30만 원',
-        '근거 문서': '상품설명서 2026.06 (p.3)',
-      },
-      rule: {
-        ruleId: 'PE_ELIGIBILITY_002',
-        requiredItems: ['가입 대상', '제외 조건', '적용 기간'],
-        severity: 'CRITICAL',
-        index: 'ADV-RAG-202606',
-        source: '금융소비자 보호법 시행령, 내부 광고심의 체크리스트 v1.2',
-      },
-      aiSummary:
-        '현재 문구는 모든 고객이 조건 없이 가입하거나 혜택을 받을 수 있는 것처럼 해석될 수 있습니다. 상품 기준정보에는 만 19~34세 조건이 존재하므로 대상 조건을 함께 표시해야 합니다.',
-      revision: {
-        original: '누구나 받을 수 있다',
-        suggested: '만 19~34세 조건 충족 고객 대상',
-        additionalNotice: '가입 대상 및 우대조건은 상품설명서와 약관을 확인해 주세요.',
-        reason: '가입 대상 제한을 누락하면 모든 고객에게 동일하게 적용되는 상품으로 오인될 수 있습니다.',
-      },
-    },
-  },
-  {
-    claimId: 'CLM-002',
-    statement: "'최고 연 7%'",
-    type: 'RATE',
-    verificationResult: '조건 누락',
-    riskLevel: 'HIGH',
-    riskLabel: '높음',
-    evidence: {
-      productTruth: {
-        상품명: 'JB 청년우대 적금',
-        '상품 버전': 'DEP-SAV-001-v202606',
-        기본금리: '연 3.0%',
-        최고금리: '최고 연 7.0%',
-        '가입 대상': '만 19~34세',
-        '납입 한도': '월 30만 원',
-        '근거 문서': '금리표 2026.06 (p.2)',
-      },
-      rule: {
-        ruleId: 'PE_RATE_001',
-        requiredItems: ['기본금리', '우대조건', '가입 대상', '납입 한도', '적용 기간'],
-        severity: 'HIGH',
-        index: 'ADV-RAG-202606',
-        source: '금융광고 자율심의 규정 v1.0, 내부 광고심의 체크리스트 v1.2',
-      },
-      aiSummary:
-        '최고 연 7%라는 수치는 상품 기준정보의 최고금리와 일치합니다. 다만 해당 최고금리는 우대조건 충족 시에만 적용됩니다. 현재 원문에는 기본금리, 우대조건, 가입 대상, 월 납입 한도, 적용 기간이 충분히 표시되어 있지 않아 고객이 모든 가입자가 무조건 최고 연 7.0% 금리를 받을 수 있는 것으로 오인할 가능성이 있습니다.',
-      revision: {
-        original: '최고 연 7%',
-        suggested: '우대조건 충족 시 최고 연 7.0%',
-        additionalNotice: '기본금리, 우대조건, 가입 대상, 납입 한도 및 기간은 상품설명서와 약관을 확인해 주세요.',
-        reason: '최고금리 표현은 우대조건, 기본금리, 가입 대상, 납입 한도 등 필수 조건을 함께 안내해야 하므로 문구 보완이 필요합니다.',
-      },
-    },
-  },
-  {
-    claimId: 'CLM-003',
-    statement: "'청년적금 혜택'",
-    type: 'BENEFIT',
-    verificationResult: '고지 필요',
-    riskLevel: 'MEDIUM',
-    riskLabel: '보통',
-    evidence: {
-      productTruth: {
-        상품명: 'JB 청년우대 적금',
-        '상품 버전': 'DEP-SAV-001-v202606',
-        혜택명: '청년우대 금리 혜택',
-        '적용 조건': '연령 및 납입 조건 충족',
-        '근거 문서': '상품설명서 2026.06 (p.4)',
-      },
-      rule: {
-        ruleId: 'PE_BENEFIT_004',
-        requiredItems: ['혜택 조건', '제외 대상', '유효 기간'],
-        severity: 'MEDIUM',
-        index: 'ADV-RAG-202606',
-        source: '금융광고 자율심의 규정 v1.0',
-      },
-      aiSummary:
-        '혜택 표현은 상품 기준정보와 방향이 일치하지만 적용 조건이 함께 제시되지 않았습니다. 혜택 대상과 기간을 함께 표시하면 오인 가능성을 낮출 수 있습니다.',
-      revision: {
-        original: '청년적금 혜택',
-        suggested: '조건 충족 시 제공되는 청년우대 적금 혜택',
-        additionalNotice: '혜택 조건과 적용 기간은 상품설명서를 확인해 주세요.',
-        reason: '혜택 표현에는 대상, 조건, 적용 기간을 함께 고지하는 것이 적절합니다.',
-      },
-    },
-  },
-]
-
-const evidenceSources = [
-  {
-    icon: ShieldCheck,
-    title: 'Product Truth',
-    count: '3개 Claim 연결',
-    description: '상품 상세 약관 및 실제 이율 구조 매핑 데이터',
-  },
-  {
-    icon: Building2,
-    title: '금융소비자 보호법 시행령',
-    count: '1개 Claim 연결',
-    description: '제19조 금융상품 광고 준수 여부',
-  },
-  {
-    icon: FileText,
-    title: '금융광고 자율심의 규정',
-    count: '2개 Claim 연결',
-    description: '협회 필수 고지사항 및 광고 문안 가이드라인',
-  },
-]
-
-const decisions: Decision[] = ['승인', '조건부 승인', '수정 요청', '반려', '추가 자료 요청']
+const evidenceSourceIcons: Record<ComplianceReviewEvidenceSource['kind'], typeof ShieldCheck> = {
+  productTruth: ShieldCheck,
+  rule: Building2,
+  ruleFile: FileText,
+}
 
 function SurfaceCard({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <section className={`${uiTokens.radius.panel} border ${uiTokens.color.border} ${uiTokens.color.surface} ${uiTokens.shadow.panel} ${className}`}>{children}</section>
 }
 
-function RiskPill({ level, label }: { level: RiskLevel; label: string }) {
+function RiskPill({ level, label }: { level: RiskLevel | null; label: string }) {
   const classes: Record<RiskLevel, string> = {
     LOW: 'bg-emerald-50 text-emerald-700',
     MEDIUM: 'bg-amber-50 text-amber-700',
@@ -201,14 +61,18 @@ function RiskPill({ level, label }: { level: RiskLevel; label: string }) {
     CRITICAL: 'bg-rose-50 text-rose-700',
   }
 
-  return <span className={`inline-flex ${uiTokens.radius.chip} px-2 py-0.5 text-xs font-extrabold ${classes[level]}`}>{label}</span>
+  return <span className={`inline-flex ${uiTokens.radius.chip} px-2 py-0.5 text-xs font-extrabold ${level ? classes[level] : 'bg-slate-100 text-slate-500'}`}>{label}</span>
 }
 
 function TypePill({ label }: { label: string }) {
   return <span className={`inline-flex ${uiTokens.radius.chip} ${uiTokens.color.infoSurface} px-2 py-0.5 text-xs font-extrabold ${uiTokens.color.info}`}>{label}</span>
 }
 
-const RiskScoreCard = memo(function RiskScoreCard() {
+const RiskScoreCard = memo(function RiskScoreCard({ score, claims }: { score: number | null; claims: ClaimRow[] }) {
+  const normalizedScore = Math.max(0, Math.min(score ?? 0, 100))
+  const criticalCount = claims.filter((claim) => claim.riskLevel === 'CRITICAL').length
+  const riskSummaries = claims.filter((claim) => claim.riskLevel === 'CRITICAL' || claim.riskLevel === 'HIGH').slice(0, 2)
+
   return (
     <SurfaceCard className="p-5">
       <div className="flex items-center justify-between">
@@ -220,23 +84,23 @@ const RiskScoreCard = memo(function RiskScoreCard() {
         <div className="flex items-end justify-between gap-3">
           <div>
             <p className={uiTokens.typography.tableHeader}>Risk Score</p>
-            <strong className={`mt-1 block ${uiTokens.typography.metricValue}`}>92</strong>
+            <strong className={`mt-1 block ${uiTokens.typography.metricValue}`}>{score ?? '-'}</strong>
           </div>
           <p className={`flex items-center gap-1 pb-1 text-xs font-bold ${uiTokens.color.danger}`}>
             <AlertTriangle size={13} />
-            CRITICAL Claim 1건
+            CRITICAL Claim {criticalCount}건
           </p>
         </div>
         <div className="mt-3 h-2 overflow-hidden rounded-full bg-white">
-          <div className="h-full w-[92%] rounded-full bg-rose-600" />
+          <div className="h-full rounded-full bg-rose-600" style={{ width: `${normalizedScore}%` }} />
         </div>
       </div>
 
       <div className="mt-4 grid gap-2">
-        {['광고 금지 문구 사용', '수익률 과장 위험'].map((risk, index) => (
-          <div key={risk} className={`flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold ${index === 0 ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'}`}>
+        {(riskSummaries.length > 0 ? riskSummaries : claims.slice(0, 1)).map((claim, index) => (
+          <div key={claim.claimId} className={`flex h-9 items-center gap-2 rounded-md px-3 text-xs font-semibold ${index === 0 ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700'}`}>
             <AlertTriangle size={14} />
-            {risk}
+            {claim.statement}
           </div>
         ))}
       </div>
@@ -244,7 +108,7 @@ const RiskScoreCard = memo(function RiskScoreCard() {
   )
 })
 
-const EvidenceSourceList = memo(function EvidenceSourceList() {
+const EvidenceSourceList = memo(function EvidenceSourceList({ sources }: { sources: ComplianceReviewEvidenceSource[] }) {
   return (
     <SurfaceCard className="p-5">
       <div className="flex items-center justify-between">
@@ -253,7 +117,10 @@ const EvidenceSourceList = memo(function EvidenceSourceList() {
       </div>
 
       <div className="mt-4 grid gap-3">
-        {evidenceSources.map(({ icon: Icon, title, count, description }) => (
+        {sources.map(({ kind, title, count, description }) => {
+          const Icon = evidenceSourceIcons[kind]
+
+          return (
           <article key={title} className={`${uiTokens.radius.panel} border ${uiTokens.color.border} ${uiTokens.color.surface} p-3 transition hover:border-blue-700`}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
@@ -264,13 +131,14 @@ const EvidenceSourceList = memo(function EvidenceSourceList() {
             </div>
             <p className={`mt-2 ${uiTokens.typography.helper}`}>{description}</p>
           </article>
-        ))}
+          )
+        })}
       </div>
     </SurfaceCard>
   )
 })
 
-const ClaimsTable = memo(function ClaimsTable({ onOpenEvidence }: { onOpenEvidence: (claimId: string) => void }) {
+const ClaimsTable = memo(function ClaimsTable({ claims, onOpenEvidence }: { claims: ClaimRow[]; onOpenEvidence: (claimId: string) => void }) {
   const [sortKey, setSortKey] = useState<ClaimSortKey | null>(null)
   const [sortDirection, setSortDirection] = useState<DataTableSortDirection>(null)
   const sortedClaims = useMemo(() => {
@@ -282,12 +150,12 @@ const ClaimsTable = memo(function ClaimsTable({ onOpenEvidence }: { onOpenEviden
 
     return [...claims].sort((firstClaim, secondClaim) => {
       if (sortKey === 'riskLevel') {
-        return (claimRiskSortRank[firstClaim.riskLevel] - claimRiskSortRank[secondClaim.riskLevel]) * directionMultiplier
+        return ((firstClaim.riskLevel ? claimRiskSortRank[firstClaim.riskLevel] : 0) - (secondClaim.riskLevel ? claimRiskSortRank[secondClaim.riskLevel] : 0)) * directionMultiplier
       }
 
       return firstClaim[sortKey].localeCompare(secondClaim[sortKey], 'ko') * directionMultiplier
     })
-  }, [sortDirection, sortKey])
+  }, [claims, sortDirection, sortKey])
 
   return (
     <SurfaceCard className="overflow-hidden">
@@ -325,7 +193,7 @@ const ClaimsTable = memo(function ClaimsTable({ onOpenEvidence }: { onOpenEviden
           <tr key={claim.claimId} className="transition-colors hover:bg-slate-50">
             <td className="min-w-[210px] px-5 py-4">
               <span className={`flex items-center gap-2 text-xs font-bold ${uiTokens.color.headingText}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${claim.riskLevel === 'CRITICAL' ? 'bg-rose-600' : claim.riskLevel === 'HIGH' ? 'bg-orange-500' : 'bg-blue-600'}`} />
+                <span className={`h-1.5 w-1.5 rounded-full ${claim.riskLevel === 'CRITICAL' ? 'bg-rose-600' : claim.riskLevel === 'HIGH' ? 'bg-orange-500' : claim.riskLevel ? 'bg-blue-600' : 'bg-slate-300'}`} />
                 {claim.statement}
               </span>
             </td>
@@ -349,24 +217,28 @@ const ClaimsTable = memo(function ClaimsTable({ onOpenEvidence }: { onOpenEviden
             </td>
           </tr>
         ))}
+        {sortedClaims.length === 0 && (
+          <tr>
+            <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={5}>
+              표시할 클레임이 없습니다.
+            </td>
+          </tr>
+        )}
       </DataTable>
     </SurfaceCard>
   )
 })
 
-const OriginalDocument = memo(function OriginalDocument() {
+const OriginalDocument = memo(function OriginalDocument({ originalText }: { originalText: string }) {
+  const paragraphs = originalText ? originalText.split('\n\n') : ['원문 정보가 없습니다.']
+
   return (
     <SurfaceCard className="p-5">
       <h2 className={uiTokens.typography.tableHeader}>원문</h2>
       <div className={`mt-4 ${uiTokens.radius.panel} border ${uiTokens.color.border} ${uiTokens.color.surface} p-5 text-sm leading-8 ${uiTokens.color.bodyText}`}>
-        <p>
-          본 금융상품은 <mark className={`border-b-2 border-rose-600 ${uiTokens.color.dangerSurface} px-1 font-bold ${uiTokens.color.danger}`}>누구나 받을 수 있다</mark>는 파격적인 조건을 제시하고 있습니다.
-        </p>
-        <p>
-          특히 <mark className={`border-b-2 border-orange-500 ${uiTokens.color.warningSurface} px-1 font-bold ${uiTokens.color.warning}`}>최고 연 7%</mark>의 수익률을 보장하며, 가입 즉시 다양한{' '}
-          <mark className={`border-b-2 border-blue-700 ${uiTokens.color.primarySurface} px-1 font-bold ${uiTokens.color.primary}`}>청년적금 혜택</mark>을 누리실 수 있습니다.
-        </p>
-        <p className={uiTokens.color.mutedText}>본 광고문은 플랫폼사전심의중입니다.</p>
+        {paragraphs.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
       </div>
     </SurfaceCard>
   )
@@ -377,11 +249,19 @@ function ReviewDecisionPanel({
   onDecisionChange,
   comment,
   onCommentChange,
+  canSubmitFinalDecision,
+  isSubmitting,
+  submitMessage,
+  onSubmitFinalDecision,
 }: {
   selectedDecision: Decision
   onDecisionChange: (decision: Decision) => void
   comment: string
   onCommentChange: (comment: string) => void
+  canSubmitFinalDecision: boolean
+  isSubmitting: boolean
+  submitMessage: string
+  onSubmitFinalDecision: () => void
 }) {
   return (
     <SurfaceCard className="sticky top-6 flex min-h-[640px] flex-col overflow-hidden">
@@ -425,11 +305,11 @@ function ReviewDecisionPanel({
       </div>
 
       <div className={`border-t ${uiTokens.color.border} ${uiTokens.color.surface} px-5 py-5`}>
-        <Button className="w-full">
+        <Button className="w-full" disabled={!canSubmitFinalDecision || isSubmitting} onClick={onSubmitFinalDecision}>
           <Save size={16} />
-          최종 판단 저장
+          {isSubmitting ? '제출 중' : '최종 판단 제출'}
         </Button>
-        <p className={`mt-3 ${uiTokens.typography.helper}`}>AI 권고는 참고 자료이며, 최종 심의 판단은 준법관리자가 수행합니다.</p>
+        <p className={`mt-3 ${uiTokens.typography.helper}`}>{submitMessage || 'AI 권고는 참고 자료이며, 최종 심의 판단은 준법관리자가 수행합니다.'}</p>
       </div>
     </SurfaceCard>
   )
@@ -455,13 +335,13 @@ const EvidenceDrawer = memo(function EvidenceDrawer({
   open,
   onClose,
   onAppendComment,
-  onApplyRevisionReason,
+  claimCommentApplied,
 }: {
   claim: ClaimRow
   open: boolean
   onClose: () => void
   onAppendComment: () => void
-  onApplyRevisionReason: () => void
+  claimCommentApplied: boolean
 }) {
   return (
     <Drawer
@@ -470,11 +350,8 @@ const EvidenceDrawer = memo(function EvidenceDrawer({
       onClose={onClose}
       footer={
         <div className="grid gap-2">
-          <Button variant="secondary" className="w-full" onClick={onAppendComment}>
-            검토 의견에 추가
-          </Button>
-          <Button className="w-full" onClick={onApplyRevisionReason}>
-            수정 요청 사유로 반영
+          <Button className="w-full" disabled={claimCommentApplied} onClick={onAppendComment}>
+            {claimCommentApplied ? '이미 반영됨' : '검토 의견에 반영'}
           </Button>
           <Button variant="ghost" className="w-full" onClick={onClose}>
             닫기
@@ -584,23 +461,110 @@ const EvidenceDrawer = memo(function EvidenceDrawer({
 })
 
 export function ComplianceReviewDetailPage() {
+  const { reviewId } = useParams()
+  const [searchParams] = useSearchParams()
+  const { user } = useAuth()
+  const comIdParam = reviewId === 'detail' ? searchParams.get('comId') : reviewId
+  const comId = Number(comIdParam)
+  const [detail, setDetail] = useState<ComplianceReviewDetail>({
+    score: null,
+    claims: [],
+    evidenceSources: [],
+    originalText: '',
+  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmittingFinalDecision, setIsSubmittingFinalDecision] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [submitMessage, setSubmitMessage] = useState('')
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const [selectedClaimId, setSelectedClaimId] = useState(claims[1].claimId)
+  const [selectedClaimId, setSelectedClaimId] = useState('')
   const [selectedDecision, setSelectedDecision] = useState<Decision>('수정 요청')
   const [comment, setComment] = useState('')
-  const selectedClaim = useMemo(() => claims.find((claim) => claim.claimId === selectedClaimId) ?? claims[0], [selectedClaimId])
+  const selectedClaim = useMemo(() => detail.claims.find((claim) => claim.claimId === selectedClaimId) ?? detail.claims[0] ?? null, [detail.claims, selectedClaimId])
+  const selectedClaimCommentApplied = selectedClaim ? hasAppliedClaimReviewComment(comment, selectedClaim) : false
+  const processStatus = getComplianceProcessStatus(selectedDecision)
+  const canSubmitFinalDecision = Boolean(processStatus) && !isLoading && !errorMessage
+
+  useEffect(() => {
+    if (!Number.isInteger(comId) || comId <= 0) {
+      setErrorMessage('준법심사 ID가 올바르지 않습니다.')
+      setIsLoading(false)
+      return
+    }
+
+    let cancelled = false
+
+    setIsLoading(true)
+    fetchComplianceReviewDetail(comId).then((nextDetail) => {
+      if (cancelled) {
+        return
+      }
+
+      setDetail(nextDetail)
+      setSelectedClaimId(nextDetail.claims[0]?.claimId ?? '')
+      setErrorMessage('')
+    }).catch(() => {
+      if (!cancelled) {
+        setErrorMessage('준법 Review 상세 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      }
+    }).finally(() => {
+      if (!cancelled) {
+        setIsLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [comId])
 
   const openEvidence = useCallback((claimId: string) => {
     setSelectedClaimId(claimId)
     setDrawerOpen(true)
   }, [])
   const closeEvidenceDrawer = useCallback(() => setDrawerOpen(false), [])
-  const appendSelectedClaimSummary = useCallback(() => {
-    setComment((value) => `${value}\n${selectedClaim.evidence.aiSummary}`.trim())
-  }, [selectedClaim.evidence.aiSummary])
-  const applySelectedClaimRevisionReason = useCallback(() => {
-    setComment((value) => `${value}\n수정 요청 사유: ${selectedClaim.evidence.revision.reason}`.trim())
-  }, [selectedClaim.evidence.revision.reason])
+  const appendSelectedClaimReviewComment = useCallback(() => {
+    if (!selectedClaim) {
+      return
+    }
+
+    if (hasAppliedClaimReviewComment(comment, selectedClaim)) {
+      return
+    }
+
+    setComment((value) => {
+      if (hasAppliedClaimReviewComment(value, selectedClaim)) {
+        return value
+      }
+
+      return appendReviewComment(value, buildClaimReviewComment(selectedClaim))
+    })
+    setDrawerOpen(false)
+  }, [comment, selectedClaim])
+  const submitFinalDecision = useCallback(async () => {
+    const comStatus = getComplianceProcessStatus(selectedDecision)
+
+    if (!comStatus || !Number.isInteger(comId) || comId <= 0) {
+      setSubmitMessage('선택한 최종 판단은 제출할 수 없습니다.')
+      return
+    }
+
+    setIsSubmittingFinalDecision(true)
+    setSubmitMessage('')
+
+    try {
+      await processComplianceReview(comId, {
+        userId: user.userId,
+        comReviewComments: comment.trim(),
+        comStatus,
+      })
+      setSubmitMessage('최종 판단이 제출되었습니다.')
+    } catch {
+      setSubmitMessage('최종 판단 제출에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setIsSubmittingFinalDecision(false)
+    }
+  }, [comId, comment, selectedDecision, user.userId])
 
   return (
     <div className="w-full pb-12">
@@ -615,27 +579,45 @@ export function ComplianceReviewDetailPage() {
           </>
         }
       />
+      {(isLoading || errorMessage) && (
+        <div className={`mb-6 ${uiTokens.radius.panel} border ${errorMessage ? 'border-red-200 bg-red-50' : uiTokens.color.border} ${uiTokens.spacing.cardCompact}`}>
+          <p className={`${uiTokens.typography.body} ${errorMessage ? uiTokens.color.danger : uiTokens.color.bodyText}`}>
+            {errorMessage || '준법 Review 상세 정보를 불러오는 중입니다.'}
+          </p>
+        </div>
+      )}
       <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,880px)_360px]">
         <aside className="grid content-start gap-4">
-          <RiskScoreCard />
-          <EvidenceSourceList />
+          <RiskScoreCard score={detail.score} claims={detail.claims} />
+          <EvidenceSourceList sources={detail.evidenceSources} />
         </aside>
 
         <main className="grid content-start gap-4">
-          <ClaimsTable onOpenEvidence={openEvidence} />
-          <OriginalDocument />
+          <ClaimsTable claims={detail.claims} onOpenEvidence={openEvidence} />
+          <OriginalDocument originalText={detail.originalText} />
         </main>
 
-        <ReviewDecisionPanel selectedDecision={selectedDecision} onDecisionChange={setSelectedDecision} comment={comment} onCommentChange={setComment} />
+        <ReviewDecisionPanel
+          selectedDecision={selectedDecision}
+          onDecisionChange={setSelectedDecision}
+          comment={comment}
+          onCommentChange={setComment}
+          canSubmitFinalDecision={canSubmitFinalDecision}
+          isSubmitting={isSubmittingFinalDecision}
+          submitMessage={submitMessage || (processStatus ? '' : '추가 자료 요청은 API 처리 상태가 없어 제출할 수 없습니다.')}
+          onSubmitFinalDecision={submitFinalDecision}
+        />
       </div>
 
-      <EvidenceDrawer
-        claim={selectedClaim}
-        open={drawerOpen}
-        onClose={closeEvidenceDrawer}
-        onAppendComment={appendSelectedClaimSummary}
-        onApplyRevisionReason={applySelectedClaimRevisionReason}
-      />
+      {selectedClaim && (
+        <EvidenceDrawer
+          claim={selectedClaim}
+          open={drawerOpen}
+          onClose={closeEvidenceDrawer}
+          onAppendComment={appendSelectedClaimReviewComment}
+          claimCommentApplied={selectedClaimCommentApplied}
+        />
+      )}
     </div>
   )
 }

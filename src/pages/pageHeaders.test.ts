@@ -46,7 +46,7 @@ describe('route page headers', () => {
     const source = pageSources['../domains/product-truth/pages/ProductTruthPage.tsx']
 
     expect(source).toContain('<Card title="상품 선택">')
-    expect(source).toContain('<Card title="Product Version Management">')
+    expect(source).toContain('<Card title="Product Information">')
     expect(source).not.toContain('status={product.status}')
     expect(source).not.toContain('status={productTruthData.version.status}')
     expect(source).not.toContain('변경 이력 보기')
@@ -57,7 +57,7 @@ describe('route page headers', () => {
   it('uses real pagination state for Product Truth facts', () => {
     const source = pageSources['../domains/product-truth/pages/ProductTruthPage.tsx']
 
-    expect(source).toContain('const productFactPageSize = 2')
+    expect(source).toContain('const productFactPageSize = 5')
     expect(source).toContain('const [productFactPage, setProductFactPage]')
     expect(source).toContain('const productFactTotalPages')
     expect(source).toContain('const paginatedFacts')
@@ -73,13 +73,20 @@ describe('route page headers', () => {
 
     expect(source).toContain('const [selectedProductId, setSelectedProductId]')
     expect(source).toContain('const selectedProduct =')
-    expect(source).toContain('const selectedProductDetails = productTruthData.productDetails[selectedProduct.productId]')
+    expect(source).toContain('const selectedProductDetails = selectedProduct')
     expect(source).toContain('setSelectedProductId(product.productId)')
     expect(source).toContain('setProductFactPage(1)')
     expect(source).toContain('aria-pressed={selectedProductId === product.productId}')
-    expect(source).toContain('selectedProductDetails.version.label')
-    expect(source).toContain('selectedProductDetails.facts')
+    expect(source).toContain('const selectedProductFacts = selectedProductDetails?.facts ?? []')
     expect(source).not.toContain('productTruthData.version.')
     expect(source).not.toContain('productTruthData.facts')
+  })
+
+  it('loads Product Truth products from the list API', () => {
+    const source = pageSources['../domains/product-truth/pages/ProductTruthPage.tsx']
+
+    expect(source).toContain('fetchProductTruthProducts')
+    expect(source).toContain('const [items, setItems]')
+    expect(source).not.toContain('productTruthData')
   })
 })

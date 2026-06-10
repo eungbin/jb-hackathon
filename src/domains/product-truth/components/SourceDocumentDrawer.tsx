@@ -32,10 +32,6 @@ export function SourceDocumentDrawer({ documentDraft, onChange, onClose, onSave 
             <p className="mt-2 break-words text-sm font-semibold text-slate-950">{documentDraft.fileName}</p>
           </div>
           <SelectField label="문서 유형" value={documentDraft.documentType} onChange={(value) => onChange({ ...documentDraft, documentType: value as ProductDocumentType })} options={documentTypeOptions.map((type) => ({ value: type, label: documentTypeLabels[type] }))} />
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="버전" value={documentDraft.version} onChange={(value) => onChange({ ...documentDraft, version: value })} />
-            <Field label="적용 시작일" value={documentDraft.effectiveStartDate} onChange={(value) => onChange({ ...documentDraft, effectiveStartDate: value })} />
-          </div>
           <TextareaField label="문서 설명" value={documentDraft.description ?? ''} onChange={(value) => onChange({ ...documentDraft, description: value })} rows={3} />
           <Field label="비고" value={documentDraft.note ?? ''} onChange={(value) => onChange({ ...documentDraft, note: value })} />
         </div>

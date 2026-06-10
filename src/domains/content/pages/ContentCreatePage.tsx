@@ -1,19 +1,16 @@
 import type { FormEvent, ReactNode } from 'react'
-import { useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, BadgeCheck, CalendarDays, ChevronDown, FileCheck2, FileSpreadsheet, FileText, Info, Send } from 'lucide-react'
 import { Button, PageHeader } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
+import { useAuth } from '../../auth/AuthContext'
+import { fetchProductInfo, registerContent } from '../api'
+import type { ProductInfo } from '../api'
+import { createContentRegisterRequest } from '../registration'
+import type { ContentRegistrationForm } from '../registration'
 
-type RequestState = {
-  title: string
-  originalText: string
-  productCategory: string
-  productId: string
-  urgency: string
-  channels: string[]
-  plannedPublishDate: string
-}
+type RequestState = ContentRegistrationForm
 
 const getTodayInputDate = () => {
   const today = new Date()
@@ -25,20 +22,15 @@ const getTodayInputDate = () => {
 const initialRequest: RequestState = {
   title: '',
   originalText: '',
-  productCategory: '적금/예금',
-  productId: 'DEP-SAV-001',
+  productCategory: '예금',
+  productId: 0,
   urgency: '보통',
   channels: ['App Push'],
   plannedPublishDate: getTodayInputDate(),
 }
 
 const channelOptions = ['App Push', 'SMS', 'Banner', 'Homepage']
-const productIdOptionsByCategory: Record<string, string[]> = {
-  '적금/예금': ['DEP-SAV-001', 'DEP-SAV-002', 'DEP-FIX-003'],
-  대출: ['LOAN-CRD-002', 'LOAN-MTG-004', 'LOAN-BIZ-005'],
-  카드: ['CARD-CASH-001', 'CARD-TRV-002', 'CARD-BIZ-003'],
-  보험: ['INS-LIFE-001', 'INS-CAR-002', 'INS-HEALTH-003'],
-}
+const productCategoryOptions = ['예금', '적금', '대출']
 
 const labelClass = uiTokens.typography.tableHeader
 const controlClass =
@@ -75,6 +67,40 @@ function SelectField({
               {option}
             </option>
           ))}
+        </select>
+        <ChevronDown className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 ${uiTokens.color.bodyText}`} size={18} />
+      </span>
+    </FieldShell>
+  )
+}
+
+function ProductSelectField({
+  value,
+  options,
+  onChange,
+}: {
+  value: number
+  options: ProductInfo[]
+  onChange: (value: number) => void
+}) {
+  return (
+    <FieldShell label="상품 ID">
+      <span className="relative block">
+        <select
+          className={`${controlClass} appearance-none pr-10`}
+          value={value > 0 ? String(value) : ''}
+          onChange={(event) => onChange(Number(event.target.value))}
+          disabled={options.length === 0}
+        >
+          {options.length === 0 ? (
+            <option value="">조회된 상품 없음</option>
+          ) : (
+            options.map((product) => (
+              <option key={product.productId} value={product.productId}>
+                {product.productName} ({product.productCode})
+              </option>
+            ))
+          )}
         </select>
         <ChevronDown className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 ${uiTokens.color.bodyText}`} size={18} />
       </span>
@@ -180,42 +206,91 @@ function ProductTruthPanel() {
 }
 
 export function ContentCreatePage() {
-  const [submitted, setSubmitted] = useState(false)
   const [request, setRequest] = useState<RequestState>(initialRequest)
+  const [products, setProducts] = useState<ProductInfo[]>([])
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const plannedDateInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
+  const { user } = useAuth()
   const todayDate = getTodayInputDate()
-  const selectedProductIdOptions = productIdOptionsByCategory[request.productCategory] ?? []
+  const selectedProductOptions = useMemo(
+    () => products.filter((product) => product.productCategory === request.productCategory),
+    [products, request.productCategory],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetchProductInfo().then((nextProducts) => {
+      if (cancelled) {
+        return
+      }
+
+      setProducts(nextProducts)
+      setRequest((current) => {
+        const currentProductStillAvailable = nextProducts.some((product) => (
+          product.productId === current.productId
+          && product.productCategory === current.productCategory
+        ))
+
+        if (currentProductStillAvailable) {
+          return current
+        }
+
+        return {
+          ...current,
+          productId: nextProducts.find((product) => product.productCategory === current.productCategory)?.productId ?? 0,
+        }
+      })
+    }).catch(() => {
+      if (!cancelled) {
+        setErrorMessage('상품 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const updateField = <Key extends keyof RequestState>(field: Key, value: RequestState[Key]) => {
     setRequest((current) => ({ ...current, [field]: value }))
   }
 
   const updateProductCategory = (productCategory: string) => {
-    const nextOptions = productIdOptionsByCategory[productCategory] ?? []
+    const nextProductId = products.find((product) => product.productCategory === productCategory)?.productId ?? 0
 
     setRequest((current) => ({
       ...current,
       productCategory,
-      productId: nextOptions.includes(current.productId) ? current.productId : nextOptions[0] ?? current.productId,
+      productId: nextProductId,
     }))
   }
 
   const toggleChannel = (value: string) => {
-    setRequest((current) => {
-      const selected = current.channels.includes(value)
-      const nextChannels = selected ? current.channels.filter((item) => item !== value) : [...current.channels, value]
-
-      return {
-        ...current,
-        channels: nextChannels.length > 0 ? nextChannels : [value],
-      }
-    })
+    setRequest((current) => ({ ...current, channels: [value] }))
   }
 
-  const submitRequest = (event: FormEvent<HTMLFormElement>) => {
+  const submitRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setSubmitted(true)
+    setErrorMessage('')
+
+    if (request.productId === 0) {
+      setErrorMessage('상품을 선택해 주세요.')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      await registerContent(createContentRegisterRequest(request, user.userId))
+      navigate('/compliance-review')
+    } catch {
+      setErrorMessage('콘텐츠 등록에 실패했습니다. 입력값을 확인한 뒤 다시 시도해 주세요.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const openPlannedDatePicker = () => {
@@ -243,15 +318,9 @@ export function ContentCreatePage() {
             description="홍보 콘텐츠의 상세 내용을 입력하고 연결된 Product Truth Layer를 확인하세요."
           />
 
-          {submitted && (
-            <div className={`mb-6 flex flex-col gap-4 ${uiTokens.radius.panel} border ${uiTokens.color.primaryBorder} ${uiTokens.color.primarySurface} ${uiTokens.spacing.cardCompact} sm:flex-row sm:items-center sm:justify-between`}>
-              <div>
-                <p className={`font-bold ${uiTokens.color.primary}`}>심의 요청이 Review Queue에 등록되었습니다.</p>
-                <p className={`mt-1 ${uiTokens.typography.body}`}>준법 Review 대기열에서 확인할 수 있습니다.</p>
-              </div>
-              <Button type="button" onClick={() => navigate('/compliance-review')}>
-                Review Queue 보기
-              </Button>
+          {errorMessage && (
+            <div className={`mb-6 ${uiTokens.radius.panel} border border-red-200 bg-red-50 ${uiTokens.spacing.cardCompact}`}>
+              <p className={`font-bold ${uiTokens.color.danger}`}>{errorMessage}</p>
             </div>
           )}
 
@@ -275,9 +344,9 @@ export function ContentCreatePage() {
                 />
               </FieldShell>
 
-              <SelectField label="상품군" options={Object.keys(productIdOptionsByCategory)} value={request.productCategory} onChange={updateProductCategory} />
+              <SelectField label="상품군" options={productCategoryOptions} value={request.productCategory} onChange={updateProductCategory} />
 
-              <SelectField label="상품 ID" options={selectedProductIdOptions} value={request.productId} onChange={(value) => updateField('productId', value)} />
+              <ProductSelectField options={selectedProductOptions} value={request.productId} onChange={(value) => updateField('productId', value)} />
 
               <FieldShell label="배포 예정일">
                 <span className="relative block">
@@ -324,8 +393,8 @@ export function ContentCreatePage() {
                 </div>
               </div>
 
-              <Button className="h-11 min-w-[180px]" type="submit">
-                <span>심의 요청 제출</span>
+              <Button className="h-11 min-w-[180px]" type="submit" disabled={isSubmitting || request.productId === 0}>
+                <span>{isSubmitting ? '등록 중' : '심의 요청 제출'}</span>
                 <Send size={18} />
               </Button>
             </div>

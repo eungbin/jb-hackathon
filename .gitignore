@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 
 .env.*
+
+docs/
+tmp_pdf_text

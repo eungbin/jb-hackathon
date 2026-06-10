@@ -1,13 +1,15 @@
 import type { LucideIcon } from 'lucide-react'
 import { AlertTriangle, CalendarCheck, ClipboardList, Search, UserCheck } from 'lucide-react'
 import type { FormEvent } from 'react'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, DataTable, PageHeader, RiskBadge } from '../../../components/ui'
 import type { DataTableSortDirection } from '../../../components/ui'
-import { reviewListData } from '../../../data/mockData'
 import { uiTokens } from '../../../design/tokens'
 import type { RiskLevel } from '../../../types'
+import { useAuth } from '../../auth/AuthContext'
+import { fetchComplianceReviewList } from '../api'
+import type { ComplianceReviewRow } from '../api'
 
 type Filters = {
   query: string
@@ -54,145 +56,30 @@ const riskSortRank: Record<RiskLevel, number> = {
   CRITICAL: 4,
 }
 
-const summaryCards: Array<{
+const summaryCardConfigs: Array<{
   label: string
-  value: string | number
   icon: LucideIcon
   tone: 'primary' | 'danger' | 'warning' | 'info'
 }> = [
-  { label: '전체 대기', value: reviewListData.summary.totalPending, icon: ClipboardList, tone: 'primary' },
-  { label: '긴급 (Critical)', value: reviewListData.summary.critical, icon: AlertTriangle, tone: 'danger' },
-  { label: '오늘 마감', value: reviewListData.summary.dueToday, icon: CalendarCheck, tone: 'warning' },
-  { label: '내 요청', value: String(reviewListData.summary.myRequests).padStart(2, '0'), icon: UserCheck, tone: 'info' },
+  { label: '전체 대기', icon: ClipboardList, tone: 'primary' },
+  { label: '긴급 (Critical)', icon: AlertTriangle, tone: 'danger' },
+  { label: '오늘 마감', icon: CalendarCheck, tone: 'warning' },
+  { label: '내 요청', icon: UserCheck, tone: 'info' },
 ]
 
-const summaryToneClasses: Record<(typeof summaryCards)[number]['tone'], string> = {
+type SummaryCardConfig = (typeof summaryCardConfigs)[number]
+type SummaryCardProps = SummaryCardConfig & {
+  value: string | number
+}
+
+const summaryToneClasses: Record<SummaryCardConfig['tone'], string> = {
   primary: uiTokens.color.primary,
   danger: uiTokens.color.danger,
   warning: uiTokens.color.warning,
   info: uiTokens.color.info,
 }
 
-const reviewRows: Array<{
-  reviewId: string
-  title: string
-  productName: string
-  channel: string
-  channelCode: string
-  riskLevel: RiskLevel
-  claimCount: number
-  requester: string
-  department: string
-  requestedAt: string
-  plannedPublishDate: string
-}> = [
-  {
-    reviewId: 'REV-2024-00892',
-    title: '[앱푸시] JB 청년우대 적금 출시 알림',
-    productName: 'JB 청년우대 적금',
-    channel: '앱푸시',
-    channelCode: 'APP_PUSH',
-    riskLevel: 'CRITICAL',
-    claimCount: 24,
-    requester: '김철수',
-    department: '마케팅팀',
-    requestedAt: '2024.11.18',
-    plannedPublishDate: '2024.11.25',
-  },
-  {
-    reviewId: 'REV-2024-00889',
-    title: '[인스타] 마이핏 정기예금 홍보 이벤트',
-    productName: '마이핏 정기예금',
-    channel: 'SNS',
-    channelCode: 'SNS',
-    riskLevel: 'HIGH',
-    claimCount: 12,
-    requester: '이영희',
-    department: '브랜드팀',
-    requestedAt: '2024.11.17',
-    plannedPublishDate: '2024.11.24',
-  },
-  {
-    reviewId: 'REV-2024-00885',
-    title: '[홈페이지] 퇴직연금 IRP 가입 가이드',
-    productName: '퇴직연금 IRP',
-    channel: '홈페이지',
-    channelCode: 'BANNER',
-    riskLevel: 'MEDIUM',
-    claimCount: 18,
-    requester: '박정민',
-    department: '상품운영팀',
-    requestedAt: '2024.11.17',
-    plannedPublishDate: '2024.11.23',
-  },
-  {
-    reviewId: 'REV-2024-00882',
-    title: '[문자] 신규 서비스 약관 개정 안내',
-    productName: '전체 서비스',
-    channel: 'SMS',
-    channelCode: 'SMS',
-    riskLevel: 'LOW',
-    claimCount: 8,
-    requester: '최민수',
-    department: '법무팀',
-    requestedAt: '2024.11.16',
-    plannedPublishDate: '2024.11.22',
-  },
-  {
-    reviewId: 'REV-2024-00880',
-    title: '[배너] 연금저축 펀드 수익률 랭킹',
-    productName: '연금저축 펀드',
-    channel: '배너',
-    channelCode: 'BANNER',
-    riskLevel: 'CRITICAL',
-    claimCount: 15,
-    requester: '정수아',
-    department: '자산운용',
-    requestedAt: '2024.11.16',
-    plannedPublishDate: '2024.11.21',
-  },
-  {
-    reviewId: 'REV-2024-00878',
-    title: '[앱푸시] 직장인 신용대출 금리 안내',
-    productName: '직장인 신용대출',
-    channel: '앱푸시',
-    channelCode: 'APP_PUSH',
-    riskLevel: 'HIGH',
-    claimCount: 10,
-    requester: '한지우',
-    department: '여신마케팅',
-    requestedAt: '2024.11.15',
-    plannedPublishDate: '2024.11.20',
-  },
-  {
-    reviewId: 'REV-2024-00875',
-    title: '[SNS] 카드 캐시백 이벤트 고지',
-    productName: 'JB 캐시백 카드',
-    channel: 'SNS',
-    channelCode: 'SNS',
-    riskLevel: 'MEDIUM',
-    claimCount: 9,
-    requester: '오세린',
-    department: '카드사업팀',
-    requestedAt: '2024.11.15',
-    plannedPublishDate: '2024.11.19',
-  },
-  {
-    reviewId: 'REV-2024-00872',
-    title: '[문자] 보험료 자동이체 혜택 안내',
-    productName: '생활안심 보험',
-    channel: 'SMS',
-    channelCode: 'SMS',
-    riskLevel: 'LOW',
-    claimCount: 6,
-    requester: '강민재',
-    department: '보험제휴팀',
-    requestedAt: '2024.11.14',
-    plannedPublishDate: '2024.11.18',
-  },
-]
-
-function SummaryCard({ label, value, icon: Icon, tone }: (typeof summaryCards)[number]) {
+function SummaryCard({ label, value, icon: Icon, tone }: SummaryCardProps) {
   return (
     <article className={`${uiTokens.radius.panel} border ${uiTokens.color.border} ${uiTokens.color.surface} ${uiTokens.spacing.cardCompact} ${uiTokens.shadow.panel}`}>
       <div className="flex items-center justify-between">
@@ -315,13 +202,13 @@ function DateRangeFilter({
   )
 }
 
-function ReviewerCell({ name, department }: { name: string; department: string }) {
+function ReviewerCell({ name, department }: { name: string; department?: string }) {
   return (
     <div className="flex min-w-[120px] items-center gap-2">
       <span className={`flex h-6 w-6 shrink-0 items-center justify-center ${uiTokens.radius.pill} ${uiTokens.color.primarySurface} text-xs font-bold ${uiTokens.color.primary}`}>{name.slice(0, 1)}</span>
       <span className="text-sm font-medium leading-5 text-slate-700">
         {name}
-        <span className="block text-xs font-normal text-slate-400">{department}</span>
+        {department && <span className="block text-xs font-normal text-slate-400">{department}</span>}
       </span>
     </div>
   )
@@ -345,12 +232,63 @@ function isWithinDateRange(date: string, start: string, end: string) {
   return true
 }
 
+function getTodayDisplayDate() {
+  const today = new Date()
+  const timezoneOffset = today.getTimezoneOffset() * 60_000
+
+  return new Date(today.getTime() - timezoneOffset).toISOString().slice(0, 10).replaceAll('-', '.')
+}
+
 export function ComplianceReviewListPage() {
+  const { user } = useAuth()
+  const [reviewRows, setReviewRows] = useState<ComplianceReviewRow[]>([])
+  const [errorMessage, setErrorMessage] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
   const [filters, setFilters] = useState<Filters>(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState<Filters>(initialFilters)
   const [currentPage, setCurrentPage] = useState(1)
   const [sortKey, setSortKey] = useState<ReviewSortKey | null>(null)
   const [sortDirection, setSortDirection] = useState<DataTableSortDirection>(null)
+  const todayDisplayDate = getTodayDisplayDate()
+  const summaryCards = useMemo(() => {
+    const values = [
+      reviewRows.length,
+      reviewRows.filter((row) => row.riskLevel === 'CRITICAL').length,
+      reviewRows.filter((row) => row.plannedPublishDate === todayDisplayDate).length,
+      String(reviewRows.filter((row) => row.requester === user.userName).length).padStart(2, '0'),
+    ]
+
+    return summaryCardConfigs.map((card, index) => ({
+      ...card,
+      value: values[index] ?? 0,
+    }))
+  }, [reviewRows, todayDisplayDate, user.userName])
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetchComplianceReviewList().then((rows) => {
+      if (cancelled) {
+        return
+      }
+
+      setReviewRows(rows)
+      setErrorMessage('')
+    }).catch(() => {
+      if (!cancelled) {
+        setErrorMessage('준법 Review 목록을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      }
+    }).finally(() => {
+      if (!cancelled) {
+        setIsLoading(false)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const setFilter = (field: keyof Filters, value: string) => {
     setFilters((current) => ({ ...current, [field]: value }))
   }
@@ -358,7 +296,7 @@ export function ComplianceReviewListPage() {
     const query = appliedFilters.query.trim().toLowerCase()
     const reviewer = appliedFilters.reviewer.trim().toLowerCase()
     const searchableText = [item.reviewId, item.title, item.productName].join(' ').toLowerCase()
-    const reviewerText = [item.requester, item.department].join(' ').toLowerCase()
+    const reviewerText = item.requester.toLowerCase()
 
     return (
       (!query || searchableText.includes(query)) &&
@@ -373,7 +311,7 @@ export function ComplianceReviewListPage() {
     const directionMultiplier = sortDirection === 'asc' ? 1 : -1
 
     if (sortKey === 'riskLevel') {
-      return (riskSortRank[firstItem.riskLevel] - riskSortRank[secondItem.riskLevel]) * directionMultiplier
+      return ((firstItem.riskLevel ? riskSortRank[firstItem.riskLevel] : 0) - (secondItem.riskLevel ? riskSortRank[secondItem.riskLevel] : 0)) * directionMultiplier
     }
 
     if (sortKey === 'claimCount') {
@@ -410,6 +348,14 @@ export function ComplianceReviewListPage() {
         ))}
       </section>
 
+      {(isLoading || errorMessage) && (
+        <div className={`mt-6 ${uiTokens.radius.panel} border ${errorMessage ? 'border-red-200 bg-red-50' : uiTokens.color.border} ${uiTokens.spacing.cardCompact}`}>
+          <p className={`${uiTokens.typography.body} ${errorMessage ? uiTokens.color.danger : uiTokens.color.bodyText}`}>
+            {errorMessage || '준법 Review 목록을 불러오는 중입니다.'}
+          </p>
+        </div>
+      )}
+
       <DataTable
         className={`mt-6 overflow-hidden ${uiTokens.radius.panel} border ${uiTokens.color.border} ${uiTokens.color.surface} ${uiTokens.shadow.panel}`}
         filters={
@@ -429,6 +375,7 @@ export function ComplianceReviewListPage() {
                   { value: 'APP_PUSH', label: '앱푸시' },
                   { value: 'SNS', label: 'SNS' },
                   { value: 'BANNER', label: '배너' },
+                  { value: 'HOMEPAGE', label: '홈페이지' },
                   { value: 'SMS', label: 'SMS' },
                 ]}
               />
@@ -498,11 +445,11 @@ export function ComplianceReviewListPage() {
                 <td className="px-3 py-4">{item.productName}</td>
                 <td className="px-3 py-4">{item.channel}</td>
                 <td className="px-3 py-4">
-                  <RiskBadge level={item.riskLevel} />
+                  {item.riskLevel ? <RiskBadge level={item.riskLevel} /> : <span className={uiTokens.color.mutedText}>-</span>}
                 </td>
                 <td className="px-3 py-4 text-center">{item.claimCount}</td>
                 <td className="px-3 py-4">
-                  <ReviewerCell name={item.requester} department={item.department} />
+                  <ReviewerCell name={item.requester} />
                 </td>
                 <td className="px-3 py-4">{item.requestedAt}</td>
                 <td className="px-3 py-4">{item.plannedPublishDate}</td>

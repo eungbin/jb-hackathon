@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { learningData } from '../../../data/mockData'
 
 const pageSources = import.meta.glob('./LearningLoopPage.tsx', {
   eager: true,
@@ -24,12 +23,12 @@ describe('LearningLoopPage candidate details', () => {
     expect(source).not.toContain('<aside className="grid content-start gap-5">')
   })
 
-  it('renders evidence pack id and product name as separate table columns', () => {
+  it('renders content id and title as separate table columns', () => {
     const source = pageSources['./LearningLoopPage.tsx']
 
     expect(source).toContain("'productTitle'")
-    expect(source).toContain("{ label: 'Evidence Pack ID', sortKey: 'sourcePackId' }")
-    expect(source).toContain("{ label: '상품명', sortKey: 'productTitle' }")
+    expect(source).toContain("{ label: '콘텐츠 ID', sortKey: 'sourcePackId' }")
+    expect(source).toContain("{ label: '콘텐츠 제목', sortKey: 'productTitle' }")
     expect(source).not.toContain("<p className={uiTokens.typography.helper}>{candidate.productTitle}</p>")
   })
 
@@ -58,11 +57,11 @@ describe('LearningLoopPage candidate details', () => {
     expect(dataSource).not.toContain('redactionStatus')
   })
 
-  it('links evidence packs and product names to their detail screens', () => {
+  it('links content ids to evidence pack detail by compliance id', () => {
     const source = pageSources['./LearningLoopPage.tsx']
 
     expect(source).toContain("import { Link } from 'react-router-dom'")
-    expect(source).toContain('to={`/evidence-pack/${candidate.sourcePackId}`}')
+    expect(source).toContain('to={`/evidence-pack/${candidate.comId}`}')
     expect(source).toContain('to="/product-truth"')
   })
 
@@ -73,14 +72,14 @@ describe('LearningLoopPage candidate details', () => {
     expect(source).not.toContain('const linkedTableTextClass')
   })
 
-  it('links the drawer source evidence pack and previews the loadable document', () => {
+  it('links the drawer source content and previews the loadable document', () => {
     const source = pageSources['./LearningLoopPage.tsx']
 
-    expect(source).toContain('to={`/evidence-pack/${selectedCandidate.sourcePackId}`}')
+    expect(source).toContain('to={`/evidence-pack/${selectedCandidate.comId}`}')
     expect(source).toContain('적재 가능한 형태의 문서')
     expect(source).toContain('적재 문서 미리보기')
     expect(source).toContain('JSON.stringify')
-    expect(source).toContain('masked_text')
+    expect(source).toContain('learning_content')
     expect(source).not.toContain('dataset_type')
   })
 
@@ -89,6 +88,34 @@ describe('LearningLoopPage candidate details', () => {
 
     expect(source).toContain('const pageSize = 5')
     expect(source).toContain('pagination={{')
-    expect(learningData.items.length).toBeGreaterThan(5)
+  })
+
+  it('loads learning loop rows from the list API', () => {
+    const source = pageSources['./LearningLoopPage.tsx']
+
+    expect(source).toContain('fetchLearningList')
+    expect(source).toContain('const [items, setItems]')
+    expect(source).not.toContain('learningData')
+  })
+
+  it('processes learning loop approval and rejection through the API', () => {
+    const source = pageSources['./LearningLoopPage.tsx']
+
+    expect(source).toContain('processLearning')
+    expect(source).toContain("processSelectedCandidate('REJECT')")
+    expect(source).toContain("processSelectedCandidate('APPROVED')")
+    expect(source).toContain('>거절</Button>')
+    expect(source).toContain('>승인</Button>')
+    expect(source).not.toContain('수정 요청')
+    expect(source).not.toContain('후보 승인')
+  })
+
+  it('disables processing actions for already approved or rejected candidates', () => {
+    const source = pageSources['./LearningLoopPage.tsx']
+
+    expect(source).toContain('selectedCandidate.loadStatus ===')
+    expect(source).toContain('selectedCandidateProcessed')
+    expect(source).toContain("selectedCandidate.loadStatus === 'APPROVED' ? '승인됨' : '거절됨'")
+    expect(source).toContain('disabled>')
   })
 })
