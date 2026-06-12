@@ -143,21 +143,41 @@ describe('normalizeEvidencePackResultDetailResponse', () => {
           claimsSuggested: '연 4.5%~8.2% (신용등급에 따라 상이)로 내 집 마련의 꿈을 이루세요.',
           claimsDisclaimer: '실제 적용 금리는 고객 신용등급에 따라 상이합니다.',
           claimsReason: '금리 표시 의무 위반: 최저 금리만 표시하고 최고 금리 미기재',
-          productFile: {
-            fileId: 1,
-            fileName: '상품설명서.pdf',
-            fileType: '상품설명서',
-            fileUrl: 'http://localhost:8080/files/products/20240701/abc123.pdf',
-          },
-          productFacts: [
+          claimFiles: [
             {
-              factTitle: '기본금리',
-              factValue: '3.5',
-              factUnit: '%',
-              factFileLocation: '1페이지 3번째 줄',
-              factPageLocation: '1페이지',
-              factSection: '제1조',
+              fileType: 'PRODUCT',
+              fileId: 1,
+              fileName: '상품설명서.pdf',
+              fileUrl: 'http://localhost:8080/files/products/20240701/abc123.pdf',
+              pageLocation: '1페이지',
+              fileLocation: '1페이지 3번째 줄',
+              section: '제1조',
+              refNote: '우대금리 조건 관련 조항',
+              facts: [
+                {
+                  factTitle: '기본금리',
+                  factValue: '3.5',
+                  factUnit: '%',
+                  factFileLocation: '1페이지 3번째 줄',
+                  factPageLocation: '1페이지',
+                  factSection: '제1조',
+                },
+              ],
             },
+            {
+              fileType: 'RULE',
+              fileId: 10,
+              fileName: '금융광고심의규정.pdf',
+              fileUrl: 'http://localhost:8080/files/rules/rule.pdf',
+              pageLocation: '3페이지',
+              fileLocation: '3페이지 2번째 줄',
+              section: '제7조',
+              refNote: null,
+              facts: [],
+            },
+          ],
+          claimKeywords: [
+            { keywordId: 1, keywordContent: '최고' },
           ],
           reviewComments: '우대금리 조건 문구 추가 후 재신청 요망',
           comStatus: 'REJECTED',
@@ -183,12 +203,13 @@ describe('normalizeEvidencePackResultDetailResponse', () => {
       claim: '우대금리 조건 미기재',
       basis: '우대금리 적용 조건이 광고 문구에 명시되지 않아 소비자 오인 가능성이 있습니다.',
       riskLevel: 'HIGH',
-      source: '상품설명서.pdf',
+      source: '상품설명서.pdf, 금융광고심의규정.pdf',
       locator: '1페이지 / 제1조 / 1페이지 3번째 줄',
       original: '최저 연 4.5%로 내 집 마련의 꿈을 이루세요.',
       suggested: '연 4.5%~8.2% (신용등급에 따라 상이)로 내 집 마련의 꿈을 이루세요.',
       disclaimer: '실제 적용 금리는 고객 신용등급에 따라 상이합니다.',
       reason: '금리 표시 의무 위반: 최저 금리만 표시하고 최고 금리 미기재',
+      keywords: '최고',
     })
   })
 })
@@ -211,7 +232,21 @@ describe('fetchEvidencePackResultDetail', () => {
           productCode: 'PRD-2024-001',
           productCategory: '적금',
         },
-        claims: [],
+        claims: [
+          {
+            claimsTitle: '우대금리 조건 미기재',
+            claimsAiSummary: '우대금리 조건이 명시되지 않았습니다.',
+            claimsRiskLevel: 'HIGH',
+            claimsOriginal: '최저 연 4.5%',
+            claimsSuggested: '연 4.5%~8.2%',
+            claimsDisclaimer: '신용등급에 따라 상이합니다.',
+            claimsReason: '최저 금리만 표시',
+            claimFiles: [],
+            claimKeywords: [],
+            reviewComments: '우대금리 조건 문구 추가 요망',
+            comStatus: 'REJECTED',
+          },
+        ],
       }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -223,5 +258,6 @@ describe('fetchEvidencePackResultDetail', () => {
     expect(calls[0].url).toBe('/api/compliance/results/1')
     expect(calls[0].init).toBeUndefined()
     expect(detail.product.productName).toBe('JB 첫 적금')
+    expect(detail.finalComment).toBe('우대금리 조건 문구 추가 요망')
   })
 })

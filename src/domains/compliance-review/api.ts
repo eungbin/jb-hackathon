@@ -43,25 +43,32 @@ export type ComplianceReviewDetailResponse = {
     claimsSuggested: string | null
     claimsDisclaimer: string | null
     claimsReason: string | null
-    productFile: {
-      fileId: number
+    claimFiles: Array<{
+      fileType: 'PRODUCT' | 'RULE'
+      fileId: number | null
       fileName: string
       fileUrl: string
-      fileType: string
-      fileDate: string
-      fileContent: string | null
-    }
-    productFacts: Array<{
-      factId: number
-      factType: string | null
-      factTitle: string | null
-      factValue: string | null
-      factUnit: string | null
-      factCondition: string | null
-      factFileLocation: string | null
-      factPageLocation: string | null
-      factSection: string | null
-      factNote: string | null
+      fileKind: string | null
+      pageLocation: string | null
+      fileLocation: string | null
+      section: string | null
+      refNote: string | null
+      facts: Array<{
+        factId: number
+        factType: string | null
+        factTitle: string | null
+        factValue: string | null
+        factUnit: string | null
+        factCondition: string | null
+        factFileLocation: string | null
+        factPageLocation: string | null
+        factSection: string | null
+        factNote: string | null
+      }>
+    }>
+    claimKeywords: Array<{
+      keywordId: number
+      keywordContent: string
     }>
     rules: Array<{
       ruleId: number
@@ -74,14 +81,12 @@ export type ComplianceReviewDetailResponse = {
         keywordContent: string
       }>
     }>
-    ruleFiles: Array<{
-      ruleFileId: number
-      ruleFileUrl: string
-      ruleFileTitle: string
-      ruleRegistAt: string
-    }>
   }>
 }
+
+type ComplianceReviewDetailClaim = ComplianceReviewDetailResponse['claims'][number]
+type ComplianceReviewDetailClaimFile = ComplianceReviewDetailClaim['claimFiles'][number]
+type ComplianceReviewDetailFact = ComplianceReviewDetailClaimFile['facts'][number]
 
 export type ComplianceReviewClaim = {
   claimId: string
@@ -171,7 +176,7 @@ function isNumber(value: unknown): value is number {
   return typeof value === 'number'
 }
 
-function isKeyword(value: unknown): value is ComplianceReviewDetailResponse['claims'][number]['rules'][number]['keywords'][number] {
+function isKeyword(value: unknown): value is { keywordId: number; keywordContent: string } {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -181,24 +186,11 @@ function isKeyword(value: unknown): value is ComplianceReviewDetailResponse['cla
   return isNumber(candidate.keywordId) && typeof candidate.keywordContent === 'string'
 }
 
-function isProductFile(value: unknown): value is ComplianceReviewDetailResponse['claims'][number]['productFile'] {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const candidate = value as Record<string, unknown>
-
-  return (
-    isNumber(candidate.fileId)
-    && typeof candidate.fileName === 'string'
-    && typeof candidate.fileUrl === 'string'
-    && typeof candidate.fileType === 'string'
-    && typeof candidate.fileDate === 'string'
-    && isNullableString(candidate.fileContent)
-  )
+function isClaimFileType(value: unknown): value is ComplianceReviewDetailClaimFile['fileType'] {
+  return value === 'PRODUCT' || value === 'RULE'
 }
 
-function isProductFact(value: unknown): value is ComplianceReviewDetailResponse['claims'][number]['productFacts'][number] {
+function isClaimFileFact(value: unknown): value is ComplianceReviewDetailFact {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -216,6 +208,28 @@ function isProductFact(value: unknown): value is ComplianceReviewDetailResponse[
     && isNullableString(candidate.factPageLocation)
     && isNullableString(candidate.factSection)
     && isNullableString(candidate.factNote)
+  )
+}
+
+function isClaimFile(value: unknown): value is ComplianceReviewDetailClaimFile {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Record<string, unknown>
+
+  return (
+    isClaimFileType(candidate.fileType)
+    && (candidate.fileId === null || isNumber(candidate.fileId))
+    && typeof candidate.fileName === 'string'
+    && typeof candidate.fileUrl === 'string'
+    && isNullableString(candidate.fileKind)
+    && isNullableString(candidate.pageLocation)
+    && isNullableString(candidate.fileLocation)
+    && isNullableString(candidate.section)
+    && isNullableString(candidate.refNote)
+    && Array.isArray(candidate.facts)
+    && candidate.facts.every(isClaimFileFact)
   )
 }
 
@@ -237,22 +251,7 @@ function isRule(value: unknown): value is ComplianceReviewDetailResponse['claims
   )
 }
 
-function isRuleFile(value: unknown): value is ComplianceReviewDetailResponse['claims'][number]['ruleFiles'][number] {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const candidate = value as Record<string, unknown>
-
-  return (
-    isNumber(candidate.ruleFileId)
-    && typeof candidate.ruleFileUrl === 'string'
-    && typeof candidate.ruleFileTitle === 'string'
-    && typeof candidate.ruleRegistAt === 'string'
-  )
-}
-
-function isComplianceReviewDetailClaim(value: unknown): value is ComplianceReviewDetailResponse['claims'][number] {
+function isComplianceReviewDetailClaim(value: unknown): value is ComplianceReviewDetailClaim {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -269,13 +268,12 @@ function isComplianceReviewDetailClaim(value: unknown): value is ComplianceRevie
     && isNullableString(candidate.claimsSuggested)
     && isNullableString(candidate.claimsDisclaimer)
     && isNullableString(candidate.claimsReason)
-    && isProductFile(candidate.productFile)
-    && Array.isArray(candidate.productFacts)
-    && candidate.productFacts.every(isProductFact)
+    && Array.isArray(candidate.claimFiles)
+    && candidate.claimFiles.every(isClaimFile)
+    && Array.isArray(candidate.claimKeywords)
+    && candidate.claimKeywords.every(isKeyword)
     && Array.isArray(candidate.rules)
     && candidate.rules.every(isRule)
-    && Array.isArray(candidate.ruleFiles)
-    && candidate.ruleFiles.every(isRuleFile)
   )
 }
 
@@ -354,15 +352,26 @@ function riskLabelOf(riskLevel: RiskLevel | null) {
   return riskLevel ? riskLabels[riskLevel] : '미정'
 }
 
-function normalizeProductTruth(claim: ComplianceReviewDetailResponse['claims'][number]) {
-  const productTruth: Record<string, string> = {
-    파일명: claim.productFile.fileName,
-    '파일 유형': claim.productFile.fileType,
-    '업로드 일시': formatIsoDateTime(claim.productFile.fileDate),
-    '파일 설명': display(claim.productFile.fileContent),
+function joinDisplayValues(values: Array<string | null | undefined>) {
+  const nonEmptyValues = values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))
+
+  return nonEmptyValues.join(', ') || '-'
+}
+
+function normalizeProductTruth(claim: ComplianceReviewDetailClaim) {
+  const productFiles = claim.claimFiles.filter((file) => file.fileType === 'PRODUCT')
+  const productTruth: Record<string, string> = {}
+
+  if (productFiles.length > 0) {
+    productTruth.파일명 = joinDisplayValues(productFiles.map((file) => file.fileName))
+    productTruth['파일 유형'] = joinDisplayValues(productFiles.map((file) => file.fileKind ?? file.fileType))
+    productTruth['페이지 위치'] = joinDisplayValues(productFiles.map((file) => file.pageLocation))
+    productTruth['파일 내 위치'] = joinDisplayValues(productFiles.map((file) => file.fileLocation))
+    productTruth.섹션 = joinDisplayValues(productFiles.map((file) => file.section))
+    productTruth['참조 비고'] = joinDisplayValues(productFiles.map((file) => file.refNote))
   }
 
-  claim.productFacts.forEach((fact, index) => {
+  productFiles.flatMap((file) => file.facts).forEach((fact, index) => {
     const title = display(fact.factTitle)
     const value = `${display(fact.factValue)}${fact.factUnit ?? ''}`
 
@@ -380,24 +389,29 @@ function normalizeProductTruth(claim: ComplianceReviewDetailResponse['claims'][n
   return productTruth
 }
 
-function normalizeRule(claim: ComplianceReviewDetailResponse['claims'][number]) {
+function normalizeRule(claim: ComplianceReviewDetailClaim) {
   const firstRule = claim.rules[0]
-  const firstRuleFile = claim.ruleFiles[0]
+  const ruleFiles = claim.claimFiles.filter((file) => file.fileType === 'RULE')
+  const firstRuleFile = ruleFiles[0]
   const requiredItems = claim.rules.map((rule) => rule.ruleRequired).filter((item): item is string => Boolean(item))
+  const claimKeywords = claim.claimKeywords.map((keyword) => keyword.keywordContent)
+  const ruleKeywords = claim.rules.flatMap((rule) => rule.keywords.map((keyword) => keyword.keywordContent))
+  const ruleSource = claim.rules.map((rule) => rule.ruleTitle).join(', ')
+  const ruleFileSource = ruleFiles.map((file) => file.refNote ?? file.fileName).join(', ')
 
   return {
     ruleId: firstRule?.ruleUniqueId ?? (firstRule ? String(firstRule.ruleId) : '-'),
-    requiredItems: requiredItems.length > 0 ? requiredItems : claim.rules.flatMap((rule) => rule.keywords.map((keyword) => keyword.keywordContent)),
+    requiredItems: requiredItems.length > 0 ? requiredItems : claimKeywords.length > 0 ? claimKeywords : ruleKeywords,
     severity: firstRule?.ruleRiskLevel ?? '-',
-    index: firstRuleFile?.ruleFileTitle ?? '-',
-    source: claim.rules.map((rule) => rule.ruleTitle).join(', ') || '-',
+    index: firstRuleFile?.fileName ?? '-',
+    source: ruleSource || ruleFileSource || '-',
   }
 }
 
 function normalizeEvidenceSources(response: ComplianceReviewDetailResponse): ComplianceReviewEvidenceSource[] {
-  const productFileNames = new Set(response.claims.map((claim) => claim.productFile.fileName))
+  const productFileNames = new Set(response.claims.flatMap((claim) => claim.claimFiles.filter((file) => file.fileType === 'PRODUCT').map((file) => file.fileName)))
   const ruleTitles = new Set(response.claims.flatMap((claim) => claim.rules.map((rule) => rule.ruleTitle)))
-  const ruleFileTitles = new Set(response.claims.flatMap((claim) => claim.ruleFiles.map((file) => file.ruleFileTitle)))
+  const ruleFileTitles = new Set(response.claims.flatMap((claim) => claim.claimFiles.filter((file) => file.fileType === 'RULE').map((file) => file.fileName)))
 
   return [
     {

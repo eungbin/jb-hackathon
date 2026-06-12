@@ -291,6 +291,7 @@ export function EvidencePackDetailPage() {
               <p>{result.basis}</p>
               <p className={`mt-2 ${uiTokens.typography.helper}`}>사유: {result.reason}</p>
               <p className={`mt-1 ${uiTokens.typography.helper}`}>고지: {result.disclaimer}</p>
+              <p className={`mt-1 ${uiTokens.typography.helper}`}>키워드: {result.keywords}</p>
             </td>
             <td className={uiTokens.spacing.tableCellRelaxed}>
               <NullableRiskBadge level={result.riskLevel} />

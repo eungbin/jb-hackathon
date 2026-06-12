@@ -51,24 +51,36 @@ export type EvidencePackResultDetailResponse = {
     claimsSuggested: string | null
     claimsDisclaimer: string | null
     claimsReason: string | null
-    productFile: {
-      fileId: number
-      fileName: string
-      fileType: string
-      fileUrl: string
-    }
-    productFacts: Array<{
-      factTitle: string | null
-      factValue: string | null
-      factUnit: string | null
-      factFileLocation: string | null
-      factPageLocation: string | null
-      factSection: string | null
+    claimFiles: Array<{
+      fileType: 'PRODUCT' | 'RULE'
+      fileId: number | null
+      fileName: string | null
+      fileUrl: string | null
+      pageLocation: string | null
+      fileLocation: string | null
+      section: string | null
+      refNote: string | null
+      facts: Array<{
+        factTitle: string | null
+        factValue: string | null
+        factUnit: string | null
+        factFileLocation: string | null
+        factPageLocation: string | null
+        factSection: string | null
+      }>
+    }>
+    claimKeywords: Array<{
+      keywordId: number
+      keywordContent: string
     }>
     reviewComments: string | null
     comStatus: EvidencePackComplianceStatus
   }>
 }
+
+type EvidencePackDetailClaim = EvidencePackResultDetailResponse['claims'][number]
+type EvidencePackDetailClaimFile = EvidencePackDetailClaim['claimFiles'][number]
+type EvidencePackDetailFact = EvidencePackDetailClaimFile['facts'][number]
 
 export type EvidencePackClaimResult = {
   claim: string
@@ -80,6 +92,7 @@ export type EvidencePackClaimResult = {
   suggested: string
   disclaimer: string
   reason: string
+  keywords: string
 }
 
 export type EvidencePackResultDetail = {
@@ -151,7 +164,7 @@ function isProduct(value: unknown): value is EvidencePackResultDetailResponse['p
   )
 }
 
-function isProductFile(value: unknown): value is EvidencePackResultDetailResponse['claims'][number]['productFile'] {
+function isClaimKeyword(value: unknown): value is EvidencePackDetailClaim['claimKeywords'][number] {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -159,14 +172,16 @@ function isProductFile(value: unknown): value is EvidencePackResultDetailRespons
   const candidate = value as Record<string, unknown>
 
   return (
-    typeof candidate.fileId === 'number'
-    && typeof candidate.fileName === 'string'
-    && typeof candidate.fileType === 'string'
-    && typeof candidate.fileUrl === 'string'
+    typeof candidate.keywordId === 'number'
+    && typeof candidate.keywordContent === 'string'
   )
 }
 
-function isProductFact(value: unknown): value is EvidencePackResultDetailResponse['claims'][number]['productFacts'][number] {
+function isClaimFileType(value: unknown): value is EvidencePackDetailClaimFile['fileType'] {
+  return value === 'PRODUCT' || value === 'RULE'
+}
+
+function isClaimFileFact(value: unknown): value is EvidencePackDetailFact {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -183,7 +198,28 @@ function isProductFact(value: unknown): value is EvidencePackResultDetailRespons
   )
 }
 
-function isDetailClaim(value: unknown): value is EvidencePackResultDetailResponse['claims'][number] {
+function isClaimFile(value: unknown): value is EvidencePackDetailClaimFile {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Record<string, unknown>
+
+  return (
+    isClaimFileType(candidate.fileType)
+    && (candidate.fileId === null || typeof candidate.fileId === 'number')
+    && isNullableString(candidate.fileName)
+    && isNullableString(candidate.fileUrl)
+    && isNullableString(candidate.pageLocation)
+    && isNullableString(candidate.fileLocation)
+    && isNullableString(candidate.section)
+    && isNullableString(candidate.refNote)
+    && Array.isArray(candidate.facts)
+    && candidate.facts.every(isClaimFileFact)
+  )
+}
+
+function isDetailClaim(value: unknown): value is EvidencePackDetailClaim {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -198,9 +234,10 @@ function isDetailClaim(value: unknown): value is EvidencePackResultDetailRespons
     && isNullableString(candidate.claimsSuggested)
     && isNullableString(candidate.claimsDisclaimer)
     && isNullableString(candidate.claimsReason)
-    && isProductFile(candidate.productFile)
-    && Array.isArray(candidate.productFacts)
-    && candidate.productFacts.every(isProductFact)
+    && Array.isArray(candidate.claimFiles)
+    && candidate.claimFiles.every(isClaimFile)
+    && Array.isArray(candidate.claimKeywords)
+    && candidate.claimKeywords.every(isClaimKeyword)
     && isNullableString(candidate.reviewComments)
     && isComplianceStatus(candidate.comStatus)
   )
@@ -259,14 +296,31 @@ function display(value: string | null | undefined) {
   return value?.trim() || '-'
 }
 
-function buildLocator(claim: EvidencePackResultDetailResponse['claims'][number]) {
-  const firstFact = claim.productFacts[0]
+function joinDisplayValues(values: Array<string | null | undefined>) {
+  const nonEmptyValues = values.map((value) => value?.trim()).filter((value): value is string => Boolean(value))
 
-  if (!firstFact) {
+  return nonEmptyValues.join(', ') || '-'
+}
+
+function buildSource(claim: EvidencePackDetailClaim) {
+  return joinDisplayValues(claim.claimFiles.map((file) => file.fileName))
+}
+
+function buildLocator(claim: EvidencePackDetailClaim) {
+  const productFacts = claim.claimFiles.filter((file) => file.fileType === 'PRODUCT').flatMap((file) => file.facts)
+  const firstFact = productFacts[0]
+
+  if (firstFact) {
+    return [firstFact.factPageLocation, firstFact.factSection, firstFact.factFileLocation].filter(Boolean).join(' / ') || '-'
+  }
+
+  const firstFile = claim.claimFiles[0]
+
+  if (!firstFile) {
     return '-'
   }
 
-  return [firstFact.factPageLocation, firstFact.factSection, firstFact.factFileLocation].filter(Boolean).join(' / ') || '-'
+  return [firstFile.pageLocation, firstFile.section, firstFile.fileLocation].filter(Boolean).join(' / ') || '-'
 }
 
 export function normalizeEvidencePackResultsResponse(response: EvidencePackResultsResponse): EvidencePackRow[] {
@@ -299,12 +353,13 @@ export function normalizeEvidencePackResultDetailResponse(response: EvidencePack
       claim: display(claim.claimsTitle) !== '-' ? display(claim.claimsTitle) : `Claim ${index + 1}`,
       basis: claim.claimsAiSummary,
       riskLevel: claim.claimsRiskLevel,
-      source: claim.productFile.fileName,
+      source: buildSource(claim),
       locator: buildLocator(claim),
       original: display(claim.claimsOriginal),
       suggested: display(claim.claimsSuggested),
       disclaimer: display(claim.claimsDisclaimer),
       reason: display(claim.claimsReason),
+      keywords: joinDisplayValues(claim.claimKeywords.map((keyword) => keyword.keywordContent)),
     })),
     finalComment: display(firstClaim?.reviewComments),
     comStatus: firstClaim?.comStatus ?? null,
