@@ -12,7 +12,7 @@ git clone https://github.com/eungbin/jb-hackathon
 npm install
 ```
 
-### 웹서버 실행
+### 웹서버 실행 (프론트엔드 접근 url: http://localhost:5173)
 ```bash
 npm run dev
 ```
