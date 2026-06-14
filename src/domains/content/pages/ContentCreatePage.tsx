@@ -2,7 +2,8 @@ import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, BadgeCheck, CalendarDays, ChevronDown, Info, Send } from 'lucide-react'
-import { Button, PageHeader } from '../../../components/ui'
+import { AlertDialog, Button, ConfirmDialog, PageHeader } from '../../../components/ui'
+import type { AlertDialogState, ConfirmDialogState } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import { useAuth } from '../../auth/AuthContext'
 import { fetchProductInfo, registerContent } from '../api'
@@ -190,6 +191,8 @@ export function ContentCreatePage() {
   const [request, setRequest] = useState<RequestState>(initialRequest)
   const [products, setProducts] = useState<ProductInfo[]>([])
   const [errorMessage, setErrorMessage] = useState('')
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const plannedDateInputRef = useRef<HTMLInputElement>(null)
   const navigate = useNavigate()
@@ -257,7 +260,27 @@ export function ContentCreatePage() {
     setRequest((current) => ({ ...current, channels: [value] }))
   }
 
-  const submitRequest = async (event: FormEvent<HTMLFormElement>) => {
+  const submitConfirmedRequest = async () => {
+    setIsSubmitting(true)
+
+    try {
+      await registerContent(createContentRegisterRequest(request, user.userId))
+      navigate('/compliance-review')
+    } catch {
+      const message = '콘텐츠 등록에 실패했습니다. 입력값을 확인한 뒤 다시 시도해 주세요.'
+
+      setErrorMessage(message)
+      setAlertDialog({
+        title: '콘텐츠 등록 실패',
+        message,
+        tone: 'danger',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const requestContentRegistration = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setErrorMessage('')
 
@@ -266,16 +289,14 @@ export function ContentCreatePage() {
       return
     }
 
-    setIsSubmitting(true)
-
-    try {
-      await registerContent(createContentRegisterRequest(request, user.userId))
-      navigate('/compliance-review')
-    } catch {
-      setErrorMessage('콘텐츠 등록에 실패했습니다. 입력값을 확인한 뒤 다시 시도해 주세요.')
-    } finally {
-      setIsSubmitting(false)
-    }
+    setConfirmDialog({
+      title: '심의 요청 제출',
+      message: '입력한 콘텐츠를 등록하고 AI 사전 검토를 시작할까요?',
+      confirmLabel: '제출',
+      onConfirm: () => {
+        void submitConfirmedRequest()
+      },
+    })
   }
 
   const openPlannedDatePicker = () => {
@@ -294,6 +315,7 @@ export function ContentCreatePage() {
   }
 
   return (
+    <>
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <section className="flex justify-center">
         <div className="w-full max-w-[800px]">
@@ -309,7 +331,7 @@ export function ContentCreatePage() {
             </div>
           )}
 
-          <form className={`${uiTokens.radius.panel} border ${uiTokens.color.borderStrong} ${uiTokens.color.surface} ${uiTokens.spacing.card} ${uiTokens.shadow.panel}`} onSubmit={submitRequest}>
+          <form className={`${uiTokens.radius.panel} border ${uiTokens.color.borderStrong} ${uiTokens.color.surface} ${uiTokens.spacing.card} ${uiTokens.shadow.panel}`} onSubmit={requestContentRegistration}>
             <div className="grid gap-x-6 gap-y-6 md:grid-cols-2">
               <FieldShell label="콘텐츠 제목" className="md:col-span-2">
                 <input
@@ -389,5 +411,8 @@ export function ContentCreatePage() {
 
       <ProductTruthPanel product={selectedProduct} />
     </div>
+    <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
+    <ConfirmDialog state={confirmDialog} onCancel={() => setConfirmDialog(null)} />
+    </>
   )
 }

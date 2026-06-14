@@ -53,12 +53,13 @@ describe('LearningLoopPage candidate details', () => {
   it('colors approved and rejected load statuses', () => {
     const source = pageSources['./LearningLoopPage.tsx']
 
-    expect(source).toContain('function LearningLoadStatusText')
+    expect(source).toContain('function LearningLoadStatusAction')
     expect(source).toContain("status === 'APPROVED'")
     expect(source).toContain('uiTokens.color.success')
     expect(source).toContain("status === 'REJECTED'")
     expect(source).toContain('uiTokens.color.danger')
-    expect(source).toContain('<LearningLoadStatusText status={candidate.loadStatus} />')
+    expect(source).toContain('<LearningLoadStatusAction')
+    expect(source).toContain('candidate={candidate}')
   })
 
   it('does not expose redaction status for loadable documents', () => {
@@ -121,12 +122,26 @@ describe('LearningLoopPage candidate details', () => {
     const source = pageSources['./LearningLoopPage.tsx']
 
     expect(source).toContain('processLearning')
-    expect(source).toContain("processSelectedCandidate('REJECT')")
-    expect(source).toContain("processSelectedCandidate('APPROVED')")
+    expect(source).toContain('LearningProcessApiError')
+    expect(source).toContain('processCandidateLearning')
+    expect(source).toContain('requestCandidateLearning')
+    expect(source).toContain('requestSelectedCandidateLearning')
+    expect(source).toContain("onProcessLearning(candidate, 'APPROVED')")
+    expect(source).toContain("onProcessLearning(candidate, 'REJECT')")
+    expect(source).toContain("requestSelectedCandidateLearning('REJECT')")
+    expect(source).toContain("requestSelectedCandidateLearning('APPROVED')")
+    expect(source).toContain('AlertDialog')
+    expect(source).toContain('ConfirmDialog')
+    expect(source).toContain('setConfirmDialog({')
+    expect(source).toContain('setAlertDialog({')
+    expect(source).toContain('AI 서버 응답 지연 또는 오류로 승인 처리에 실패했습니다.')
+    expect(source).toContain(`<Button variant="primary" className="h-8 min-w-[56px] px-2 text-xs" disabled={isProcessing} onClick={() => onProcessLearning(candidate, 'APPROVED')}>`)
+    expect(source).toContain(`<Button variant="danger" className="h-8 min-w-[56px] px-2 text-xs" disabled={isProcessing} onClick={() => onProcessLearning(candidate, 'REJECT')}>`)
+    expect(source).toContain(`<Button variant="danger" disabled={processingLearningId === selectedCandidate?.learningId} onClick={() => requestSelectedCandidateLearning('REJECT')}>`)
+    expect(source).toContain(`<Button variant="primary" disabled={processingLearningId === selectedCandidate?.learningId} onClick={() => requestSelectedCandidateLearning('APPROVED')}>`)
     expect(source).toContain('>거절</Button>')
     expect(source).toContain('>승인</Button>')
     expect(source).not.toContain('수정 요청')
-    expect(source).not.toContain('후보 승인')
   })
 
   it('disables processing actions for already approved or rejected candidates', () => {

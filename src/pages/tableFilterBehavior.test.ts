@@ -47,18 +47,15 @@ describe('table filter behavior', () => {
     expect(source).not.toContain('확정 시각')
   })
 
-  it('renders Evidence Pack learning status as an action button', () => {
+  it('renders Evidence Pack learning status as read-only text', () => {
     const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
 
-    expect(source).toContain('function EvidenceLearningAction')
-    expect(source).toContain('processLearning')
-    expect(source).toContain('LearningProcessStatus')
-    expect(source).toContain("if (status === 'PENDING')")
-    expect(source).toContain("onProcessLearning(learningId, 'APPROVED')")
-    expect(source).toContain("onProcessLearning(learningId, 'REJECT')")
-    expect(source).toContain('<EvidenceLearningAction')
-    expect(source).toContain('learningId={pack.learningId}')
+    expect(source).toContain('function EvidenceLearningStatusText')
+    expect(source).toContain('<EvidenceLearningStatusText')
     expect(source).toContain('status={pack.learningStatus}')
+    expect(source).not.toContain('processLearning')
+    expect(source).not.toContain('LearningProcessStatus')
+    expect(source).not.toContain('onProcessLearning')
     expect(source).not.toContain('적재하기')
     expect(source).not.toContain('EvidenceLearningBadge')
   })

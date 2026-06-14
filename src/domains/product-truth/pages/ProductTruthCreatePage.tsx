@@ -1,7 +1,8 @@
 import { useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, Loader2, Plus, ShieldAlert } from 'lucide-react'
-import { Button, Card, DataTable, Field, InputStatusBadge, PageHeader, SelectField, TextareaField } from '../../../components/ui'
+import { AlertDialog, Button, Card, ConfirmDialog, DataTable, Field, InputStatusBadge, PageHeader, SelectField, TextareaField } from '../../../components/ui'
+import type { AlertDialogState, ConfirmDialogState } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import type { ProductFact, SourceDocument } from '../../../types'
 import { documentTypeLabels } from '../../../utils/labels'
@@ -19,6 +20,8 @@ export function ProductTruthCreatePage() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [errors, setErrors] = useState<string[]>([])
   const [registeredStatus, setRegisteredStatus] = useState<string | null>(null)
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [documentIndex, setDocumentIndex] = useState<number | null>(null)
@@ -82,15 +85,45 @@ export function ProductTruthCreatePage() {
       const analysis = await analyzeProductFiles(uploadedFiles)
       setForm((current) => applyProductAiAnalysisResult(current, uploadedFiles, analysis))
       setProductFactPage(1)
-      setRegisteredStatus('근거문서 기반 AI 초안 작성이 완료되었습니다. 내용을 확인한 뒤 등록해 주세요.')
+      const message = '근거문서 기반 AI 초안 작성이 완료되었습니다. 내용을 확인한 뒤 등록해 주세요.'
+
+      setRegisteredStatus(message)
+      setAlertDialog({
+        title: 'AI 초안 작성 완료',
+        message,
+        tone: 'success',
+      })
     } catch {
-      setErrors(['AI 분석 요청에 실패했습니다. 파일 형식과 용량을 확인한 뒤 다시 시도해 주세요.'])
+      const message = 'AI 분석 요청에 실패했습니다. 파일 형식과 용량을 확인한 뒤 다시 시도해 주세요.'
+
+      setErrors([message])
+      setAlertDialog({
+        title: 'AI 초안 작성 실패',
+        message,
+        tone: 'danger',
+      })
     } finally {
       setIsAnalyzing(false)
     }
   }
 
-  const registration = async () => {
+  const requestAnalyzeDraft = () => {
+    if (uploadedFiles.length === 0) {
+      setErrors(['AI 초안 작성을 위해 근거 문서를 먼저 업로드해 주세요.'])
+      return
+    }
+
+    setConfirmDialog({
+      title: 'AI 초안 작성',
+      message: '업로드한 근거 문서 기준으로 상품 기준정보와 Product Fact 초안을 작성할까요?',
+      confirmLabel: '작성',
+      onConfirm: () => {
+        void analyzeDraft()
+      },
+    })
+  }
+
+  const submitConfirmedProductRegistration = async () => {
     const result = validateProductCreate(form)
     setErrors(result.errors)
 
@@ -105,10 +138,35 @@ export function ProductTruthCreatePage() {
       setErrors([])
       navigate('/product-truth')
     } catch {
-      setErrors(['상품 등록 요청에 실패했습니다. 입력값과 업로드 파일을 확인한 뒤 다시 시도해 주세요.'])
+      const message = '상품 등록 요청에 실패했습니다. 입력값과 업로드 파일을 확인한 뒤 다시 시도해 주세요.'
+
+      setErrors([message])
+      setAlertDialog({
+        title: '상품 등록 실패',
+        message,
+        tone: 'danger',
+      })
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const requestProductRegistration = () => {
+    const result = validateProductCreate(form)
+    setErrors(result.errors)
+
+    if (!result.ok) {
+      return
+    }
+
+    setConfirmDialog({
+      title: '상품 등록',
+      message: '입력한 상품 기준정보와 근거 문서를 등록할까요?',
+      confirmLabel: '등록',
+      onConfirm: () => {
+        void submitConfirmedProductRegistration()
+      },
+    })
   }
 
   const saveDocument = () => {
@@ -166,7 +224,7 @@ export function ProductTruthCreatePage() {
             <Button variant="secondary" onClick={() => navigate('/product-truth')}>
               취소
             </Button>
-            <Button disabled={isSubmitting} onClick={registration}>{isSubmitting ? '등록 중' : '등록'}</Button>
+            <Button disabled={isSubmitting} onClick={requestProductRegistration}>{isSubmitting ? '등록 중' : '등록'}</Button>
           </>
         }
       />
@@ -239,7 +297,7 @@ export function ProductTruthCreatePage() {
               ))}
             </DataTable>
             <div className="mt-4 flex justify-end">
-              <Button variant="secondary" disabled={isAnalyzing || uploadedFiles.length === 0} onClick={analyzeDraft}>
+              <Button variant="secondary" disabled={isAnalyzing || uploadedFiles.length === 0} onClick={requestAnalyzeDraft}>
                 {isAnalyzing && <Loader2 className="animate-spin" size={16} />}
                 <span>{isAnalyzing ? 'AI 초안 작성 중' : '근거문서 기반 AI 초안 작성'}</span>
               </Button>
@@ -353,6 +411,8 @@ export function ProductTruthCreatePage() {
         onDelete={deleteFact}
         onSave={saveFact}
       />
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
+      <ConfirmDialog state={confirmDialog} onCancel={() => setConfirmDialog(null)} />
     </>
   )
 }

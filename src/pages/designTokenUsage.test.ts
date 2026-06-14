@@ -69,6 +69,18 @@ describe('second-pass design token usage', () => {
     expect(uiSource).toContain('type="button"')
   })
 
+  it('shared UI provides alert and confirm dialog primitives', () => {
+    const uiSource = secondPassSources['../components/ui.tsx']
+
+    expect(uiSource).toContain('export function AlertDialog')
+    expect(uiSource).toContain('export function ConfirmDialog')
+    expect(uiSource).toContain('export type AlertDialogState')
+    expect(uiSource).toContain('export type ConfirmDialogState')
+    expect(uiSource).toContain('role="dialog"')
+    expect(uiSource).toContain('aria-modal="true"')
+    expect(uiSource).toContain("confirmTone === 'danger' ? 'danger' : 'primary'")
+  })
+
   it('chip-like UI uses the shared chip radius token', () => {
     expect(secondPassSources['../components/ui.tsx']).toContain('uiTokens.radius.chip')
     expect(secondPassSources['../domains/dashboard/pages/DashboardPage.tsx']).toContain('uiTokens.radius.chip')
@@ -142,6 +154,17 @@ describe('second-pass design token usage', () => {
     expect(contentSource).toContain('소비자가 오인할 수 있는 최상급·단정적 표현은 객관적 근거와 함께 사용해야 합니다.')
     expect(contentSource).not.toContain('금리 오인 방지')
     expect(contentSource).not.toContain('가입 조건 확인')
+  })
+
+  it('content registration confirms review request submission and alerts failures', () => {
+    const contentSource = secondPassSources['../domains/content/pages/ContentCreatePage.tsx']
+
+    expect(contentSource).toContain('AlertDialog')
+    expect(contentSource).toContain('ConfirmDialog')
+    expect(contentSource).toContain('requestContentRegistration')
+    expect(contentSource).toContain('submitConfirmedRequest')
+    expect(contentSource).toContain('setConfirmDialog({')
+    expect(contentSource).toContain('setAlertDialog({')
   })
 
   it('content registration does not collect target customers', () => {
@@ -233,6 +256,16 @@ describe('second-pass design token usage', () => {
     expect(detailSource).toContain('comStatus')
     expect(detailSource).toContain('onSubmitFinalDecision={submitFinalDecision}')
     expect(detailSource).toContain('최종 판단 제출')
+  })
+
+  it('compliance review detail confirms final decision submission and alerts failures', () => {
+    const detailSource = secondPassSources['../domains/compliance-review/pages/ComplianceReviewDetailPage.tsx']
+
+    expect(detailSource).toContain('AlertDialog')
+    expect(detailSource).toContain('ConfirmDialog')
+    expect(detailSource).toContain('submitConfirmedFinalDecision')
+    expect(detailSource).toContain('setConfirmDialog({')
+    expect(detailSource).toContain('setAlertDialog({')
   })
 
   it('compliance review detail navigates to Evidence Pack after final decision success', () => {

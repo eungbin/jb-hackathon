@@ -2,7 +2,8 @@ import type { ChangeEvent, FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
 import type { RiskLevel } from '../../../types'
-import { Badge, Button, Card, DataTable, Drawer, Field, PageHeader, RiskBadge, SelectField, TextareaField } from '../../../components/ui'
+import { AlertDialog, Badge, Button, Card, ConfirmDialog, DataTable, Drawer, Field, PageHeader, RiskBadge, SelectField, TextareaField } from '../../../components/ui'
+import type { AlertDialogState, ConfirmDialogState } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import { updateTextField } from '../../../utils/formState'
 import { createRule, fetchRulesSources, uploadRuleFile } from '../api'
@@ -50,6 +51,8 @@ export function RulesSourcesPage() {
   const [ruleDraftMode, setRuleDraftMode] = useState<RuleDraftMode>('create')
   const [isCreatingRule, setIsCreatingRule] = useState(false)
   const [isUploadingFile, setIsUploadingFile] = useState(false)
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
   const [filters, setFilters] = useState<RuleFilters>(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState<RuleFilters>(initialFilters)
   const [currentPage, setCurrentPage] = useState(1)
@@ -122,9 +125,8 @@ export function RulesSourcesPage() {
   const closeRuleDrawer = () => {
     setRuleDraft(null)
   }
-  const submitRule = async () => {
-    if (!ruleDraft?.name.trim()) {
-      setErrorMessage('룰 이름을 입력해 주세요.')
+  const submitConfirmedRule = async () => {
+    if (!ruleDraft) {
       return
     }
 
@@ -133,14 +135,43 @@ export function RulesSourcesPage() {
 
     try {
       const ruleId = await createRule(ruleDraft)
-      setStatusMessage(`룰 등록이 완료되었습니다. Rule ID: ${ruleId}`)
+      const message = `룰 등록이 완료되었습니다. Rule ID: ${ruleId}`
+
+      setStatusMessage(message)
+      setAlertDialog({
+        title: '룰 등록 완료',
+        message,
+        tone: 'success',
+      })
       closeRuleDrawer()
       setReloadKey((current) => current + 1)
     } catch {
-      setErrorMessage('룰 등록 요청에 실패했습니다. 입력값을 확인한 뒤 다시 시도해 주세요.')
+      const message = '룰 등록 요청에 실패했습니다. 입력값을 확인한 뒤 다시 시도해 주세요.'
+
+      setErrorMessage(message)
+      setAlertDialog({
+        title: '룰 등록 실패',
+        message,
+        tone: 'danger',
+      })
     } finally {
       setIsCreatingRule(false)
     }
+  }
+  const requestRuleCreation = () => {
+    if (!ruleDraft?.name.trim()) {
+      setErrorMessage('룰 이름을 입력해 주세요.')
+      return
+    }
+
+    setConfirmDialog({
+      title: '룰 생성',
+      message: '입력한 심의 규칙을 등록할까요?',
+      confirmLabel: '생성',
+      onConfirm: () => {
+        void submitConfirmedRule()
+      },
+    })
   }
   const handleRuleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.currentTarget.files?.[0]
@@ -155,10 +186,24 @@ export function RulesSourcesPage() {
 
     try {
       const ruleFileId = await uploadRuleFile(file)
-      setStatusMessage(`RAG Source Library 업로드가 완료되었습니다. Rule File ID: ${ruleFileId}`)
+      const message = `RAG Source Library 업로드가 완료되었습니다. Rule File ID: ${ruleFileId}`
+
+      setStatusMessage(message)
+      setAlertDialog({
+        title: '파일 업로드 완료',
+        message,
+        tone: 'success',
+      })
       setReloadKey((current) => current + 1)
     } catch {
-      setErrorMessage('RAG Source Library 업로드에 실패했습니다. 파일 형식과 용량을 확인해 주세요.')
+      const message = 'RAG Source Library 업로드에 실패했습니다. 파일 형식과 용량을 확인해 주세요.'
+
+      setErrorMessage(message)
+      setAlertDialog({
+        title: '파일 업로드 실패',
+        message,
+        tone: 'danger',
+      })
     } finally {
       setIsUploadingFile(false)
     }
@@ -278,7 +323,7 @@ export function RulesSourcesPage() {
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={closeRuleDrawer}>닫기</Button>
-            {ruleDraftMode === 'create' && <Button disabled={isCreatingRule} onClick={submitRule}>{isCreatingRule ? '등록 중' : '룰 생성'}</Button>}
+            {ruleDraftMode === 'create' && <Button disabled={isCreatingRule} onClick={requestRuleCreation}>{isCreatingRule ? '등록 중' : '룰 생성'}</Button>}
           </div>
         }
       >
@@ -291,6 +336,8 @@ export function RulesSourcesPage() {
           </div>
         )}
       </Drawer>
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
+      <ConfirmDialog state={confirmDialog} onCancel={() => setConfirmDialog(null)} />
     </div>
   )
 }

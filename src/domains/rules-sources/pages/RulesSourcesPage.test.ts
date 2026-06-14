@@ -24,6 +24,18 @@ describe('RulesSourcesPage API integration', () => {
     expect(source).toContain('type="file"')
   })
 
+  it('confirms rule creation and alerts rule or file operation results', () => {
+    const source = pageSources['./RulesSourcesPage.tsx']
+
+    expect(source).toContain('AlertDialog')
+    expect(source).toContain('ConfirmDialog')
+    expect(source).toContain('requestRuleCreation')
+    expect(source).toContain('submitConfirmedRule')
+    expect(source).toContain('setConfirmDialog({')
+    expect(source).toContain('setAlertDialog({')
+    expect(source).toContain('onClick={requestRuleCreation}')
+  })
+
   it('does not render status chips in the RAG Source Library', () => {
     const source = pageSources['./RulesSourcesPage.tsx']
 

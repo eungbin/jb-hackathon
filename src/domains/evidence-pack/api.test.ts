@@ -101,6 +101,32 @@ describe('fetchEvidencePackResults', () => {
     expect(rows[0]?.packId).toBe('EP-2024-00001')
   })
 
+  it('loads rows when legacy result rows omit learning id', async () => {
+    const fetcher: typeof fetch = async () => new Response(JSON.stringify([
+      {
+        comEpId: 'EP-2024-00001',
+        comId: 1,
+        comUniqueId: 'CNT-00001',
+        comTitle: '여름 적금 이벤트 앱푸시',
+        productName: 'JB 첫 적금',
+        comChannel: '앱푸시',
+        comStatus: 'APPROVED',
+        maxRiskLevel: 'LOW',
+        comApprovedAt: '2024-07-25T11:00:00',
+        approverName: '김준법',
+        learningStatus: 'PENDING',
+      },
+    ]), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    const rows = await fetchEvidencePackResults(fetcher)
+
+    expect(rows[0]?.learningId).toBeNull()
+    expect(rows[0]?.learningStatus).toBe('PENDING')
+  })
+
   it('rejects result rows with non-final compliance status', async () => {
     const fetcher: typeof fetch = async () => new Response(JSON.stringify([
       {

@@ -1,6 +1,10 @@
 export type LearningListStatus = 'PENDING' | 'REJECT' | 'REJECTED' | 'APPROVED'
 export type LearningLoopLoadStatus = 'PENDING' | 'REJECTED' | 'APPROVED'
 export type LearningProcessStatus = 'APPROVED' | 'REJECT'
+export type LearningProcessApprovedResponse = {
+  learningUniqueId: string
+  learningStatus: 'APPROVED'
+}
 
 export type LearningListResponse = Array<{
   learningId: number
@@ -48,6 +52,29 @@ function isLearningListItem(value: unknown): value is LearningListResponse[numbe
     && isLearningStatus(candidate.learningStatus)
     && (candidate.learningContent === null || typeof candidate.learningContent === 'string')
   )
+}
+
+function isLearningProcessApprovedResponse(value: unknown): value is LearningProcessApprovedResponse {
+  if (!value || typeof value !== 'object') {
+    return false
+  }
+
+  const candidate = value as Record<string, unknown>
+
+  return (
+    typeof candidate.learningUniqueId === 'string'
+    && candidate.learningStatus === 'APPROVED'
+  )
+}
+
+export class LearningProcessApiError extends Error {
+  status: number
+
+  constructor(status: number) {
+    super(`Learning loop process API request failed: ${status}`)
+    this.name = 'LearningProcessApiError'
+    this.status = status
+  }
 }
 
 function normalizeStatus(status: LearningListStatus): LearningLoopLoadStatus {
@@ -102,6 +129,18 @@ export async function processLearning(learningId: number, learningStatus: Learni
   })
 
   if (!response.ok) {
-    throw new Error(`Learning loop process API request failed: ${response.status}`)
+    throw new LearningProcessApiError(response.status)
   }
+
+  if (learningStatus === 'REJECT') {
+    return null
+  }
+
+  const data: unknown = await response.json()
+
+  if (!isLearningProcessApprovedResponse(data)) {
+    throw new Error('Learning loop process API response is invalid')
+  }
+
+  return data
 }

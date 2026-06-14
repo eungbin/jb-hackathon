@@ -1,10 +1,10 @@
 import type { FormEvent } from 'react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button, Card, DataTable, Drawer, Field, PageHeader, SelectField } from '../../../components/ui'
-import type { DataTableSortDirection } from '../../../components/ui'
+import { AlertDialog, Button, Card, ConfirmDialog, DataTable, Drawer, Field, PageHeader, SelectField } from '../../../components/ui'
+import type { AlertDialogState, ConfirmDialogState, DataTableSortDirection } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
-import { fetchLearningList, processLearning } from '../api'
+import { LearningProcessApiError, fetchLearningList, processLearning } from '../api'
 import type { LearningLoopRow, LearningProcessStatus } from '../api'
 
 const pageSize = 5
@@ -34,14 +34,42 @@ const learningTableHeaders = [
   { label: '액션', sortable: false },
 ]
 
-function LearningLoadStatusText({ status }: { status: LearningLoopRow['loadStatus'] }) {
+function LearningLoadStatusAction({
+  candidate,
+  processingLearningId,
+  onProcessLearning,
+}: {
+  candidate: LearningLoopRow
+  processingLearningId: number | null
+  onProcessLearning: (candidate: LearningLoopRow, learningStatus: LearningProcessStatus) => void
+}) {
+  const status = candidate.loadStatus
   const colorClass = status === 'APPROVED'
     ? uiTokens.color.success
     : status === 'REJECTED'
       ? uiTokens.color.danger
       : uiTokens.color.bodyText
 
-  return <span className={`font-semibold ${colorClass}`}>{loadStatusLabels[status]}</span>
+  if (status === 'PENDING') {
+    const isProcessing = processingLearningId === candidate.learningId
+
+    return (
+      <div className="flex gap-1">
+        <Button variant="primary" className="h-8 min-w-[56px] px-2 text-xs" disabled={isProcessing} onClick={() => onProcessLearning(candidate, 'APPROVED')}>
+          승인
+        </Button>
+        <Button variant="danger" className="h-8 min-w-[56px] px-2 text-xs" disabled={isProcessing} onClick={() => onProcessLearning(candidate, 'REJECT')}>
+          거절
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <Button variant="secondary" className={`h-8 min-w-[76px] px-3 text-xs ${colorClass}`} disabled>
+      {loadStatusLabels[status]}
+    </Button>
+  )
 }
 
 export function LearningLoopPage() {
@@ -49,7 +77,9 @@ export function LearningLoopPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
   const [statusMessage, setStatusMessage] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
+  const [processingLearningId, setProcessingLearningId] = useState<number | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
   const [filters, setFilters] = useState<LearningFilters>(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState<LearningFilters>(initialFilters)
@@ -118,24 +148,59 @@ export function LearningLoopPage() {
     setAppliedFilters(initialFilters)
     setCurrentPage(1)
   }
-  const processSelectedCandidate = async (learningStatus: LearningProcessStatus) => {
+  const processCandidateLearning = async (candidate: LearningLoopRow, learningStatus: LearningProcessStatus, closeAfterSuccess = false) => {
+    setProcessingLearningId(candidate.learningId)
+    setErrorMessage('')
+
+    try {
+      const result = await processLearning(candidate.learningId, learningStatus)
+      const candidateLabel = result?.learningUniqueId ?? candidate.candidateId
+      const message = learningStatus === 'APPROVED'
+        ? `Learning Loop 후보 ${candidateLabel}를 승인했습니다.`
+        : `Learning Loop 후보 ${candidateLabel}를 거절했습니다.`
+
+      setStatusMessage(message)
+      setAlertDialog({
+        title: '처리 완료',
+        message,
+        tone: 'success',
+      })
+      if (closeAfterSuccess) {
+        closeCandidateDetails()
+      }
+      setReloadKey((current) => current + 1)
+    } catch (error) {
+      const message = error instanceof LearningProcessApiError && error.status === 502
+        ? 'AI 서버 응답 지연 또는 오류로 승인 처리에 실패했습니다. 상태는 대기중으로 유지되며 다시 시도할 수 있습니다.'
+        : 'Learning Loop 처리 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+
+      setErrorMessage(message)
+      setAlertDialog({
+        title: '처리 실패',
+        message,
+        tone: 'danger',
+      })
+    } finally {
+      setProcessingLearningId(null)
+    }
+  }
+  const requestCandidateLearning = (candidate: LearningLoopRow, learningStatus: LearningProcessStatus, closeAfterSuccess = false) => {
+    setConfirmDialog({
+      title: learningStatus === 'APPROVED' ? 'Learning Loop 후보 승인' : 'Learning Loop 후보 거절',
+      message: `${candidate.candidateId} 후보를 ${learningStatus === 'APPROVED' ? '승인' : '거절'}할까요?`,
+      confirmLabel: learningStatus === 'APPROVED' ? '승인' : '거절',
+      tone: learningStatus === 'APPROVED' ? 'primary' : 'danger',
+      onConfirm: () => {
+        void processCandidateLearning(candidate, learningStatus, closeAfterSuccess)
+      },
+    })
+  }
+  const requestSelectedCandidateLearning = (learningStatus: LearningProcessStatus) => {
     if (!selectedCandidate) {
       return
     }
 
-    setIsProcessing(true)
-    setErrorMessage('')
-
-    try {
-      await processLearning(selectedCandidate.learningId, learningStatus)
-      setStatusMessage(learningStatus === 'APPROVED' ? 'Learning Loop 후보를 승인했습니다.' : 'Learning Loop 후보를 거절했습니다.')
-      closeCandidateDetails()
-      setReloadKey((current) => current + 1)
-    } catch {
-      setErrorMessage('Learning Loop 처리 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.')
-    } finally {
-      setIsProcessing(false)
-    }
+    requestCandidateLearning(selectedCandidate, learningStatus, true)
   }
 
   return (
@@ -212,7 +277,11 @@ export function LearningLoopPage() {
               </Link>
             </td>
             <td className={uiTokens.spacing.tableCellRelaxed}>
-              <LearningLoadStatusText status={candidate.loadStatus} />
+              <LearningLoadStatusAction
+                candidate={candidate}
+                processingLearningId={processingLearningId}
+                onProcessLearning={requestCandidateLearning}
+              />
             </td>
             <td className={uiTokens.spacing.tableCellRelaxed}>
               <Button variant="secondary" onClick={() => openCandidateDetails(candidate.candidateId)}>상세보기</Button>
@@ -237,8 +306,8 @@ export function LearningLoopPage() {
             <Button className="w-full" disabled>{selectedCandidate.loadStatus === 'APPROVED' ? '승인됨' : '거절됨'}</Button>
           ) : (
             <div className="grid grid-cols-2 gap-2">
-              <Button variant="secondary" disabled={isProcessing} onClick={() => processSelectedCandidate('REJECT')}>거절</Button>
-              <Button disabled={isProcessing} onClick={() => processSelectedCandidate('APPROVED')}>승인</Button>
+              <Button variant="danger" disabled={processingLearningId === selectedCandidate?.learningId} onClick={() => requestSelectedCandidateLearning('REJECT')}>거절</Button>
+              <Button variant="primary" disabled={processingLearningId === selectedCandidate?.learningId} onClick={() => requestSelectedCandidateLearning('APPROVED')}>승인</Button>
             </div>
           )
         }
@@ -300,6 +369,8 @@ export function LearningLoopPage() {
           </div>
         )}
       </Drawer>
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
+      <ConfirmDialog state={confirmDialog} onCancel={() => setConfirmDialog(null)} />
     </div>
   )
 }

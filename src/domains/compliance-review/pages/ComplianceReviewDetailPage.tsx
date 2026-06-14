@@ -10,8 +10,8 @@ import {
   Save,
   ShieldCheck,
 } from 'lucide-react'
-import { Button, DataTable, Drawer, PageHeader } from '../../../components/ui'
-import type { DataTableSortDirection } from '../../../components/ui'
+import { AlertDialog, Button, ConfirmDialog, DataTable, Drawer, PageHeader } from '../../../components/ui'
+import type { AlertDialogState, ConfirmDialogState, DataTableSortDirection } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import type { RiskLevel } from '../../../types'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
@@ -60,11 +60,11 @@ function RiskPill({ level, label }: { level: RiskLevel | null; label: string }) 
     CRITICAL: 'bg-rose-50 text-rose-700',
   }
 
-  return <span className={`inline-flex ${uiTokens.radius.chip} px-2 py-0.5 text-xs font-extrabold ${level ? classes[level] : 'bg-slate-100 text-slate-500'}`}>{label}</span>
+  return <span className={`inline-flex shrink-0 whitespace-nowrap ${uiTokens.radius.chip} px-2 py-0.5 text-xs font-extrabold ${level ? classes[level] : 'bg-slate-100 text-slate-500'}`}>{label}</span>
 }
 
 function TypePill({ label }: { label: string }) {
-  return <span className={`inline-flex ${uiTokens.radius.chip} ${uiTokens.color.infoSurface} px-2 py-0.5 text-xs font-extrabold ${uiTokens.color.info}`}>{label}</span>
+  return <span className={`inline-flex shrink-0 whitespace-nowrap ${uiTokens.radius.chip} ${uiTokens.color.infoSurface} px-2 py-0.5 text-xs font-extrabold ${uiTokens.color.info}`}>{label}</span>
 }
 
 const RiskScoreCard = memo(function RiskScoreCard({ score, claims }: { score: number | null; claims: ClaimRow[] }) {
@@ -364,14 +364,16 @@ const EvidenceDrawer = memo(function EvidenceDrawer({
     >
       <div className="grid gap-4">
         <div className="rounded-lg border border-rose-100 bg-rose-50 p-4">
-          <div className="flex items-center gap-2">
+          <div className="flex items-start gap-2">
             <RiskPill level={claim.riskLevel} label={claim.riskLabel} />
-            <span className={`text-xs font-bold ${uiTokens.color.headingText}`}>{claim.statement}</span>
+            <span className={`min-w-0 text-xs font-bold leading-5 ${uiTokens.color.headingText}`}>{claim.statement}</span>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-4">
             <div>
               <p className={`text-xs font-semibold ${uiTokens.color.mutedText}`}>AI 검증결과</p>
-              <p className={`mt-1 text-sm font-bold ${uiTokens.color.danger}`}>{claim.verificationResult}</p>
+              <div className="mt-1">
+                <TypePill label={claim.verificationResult} />
+              </div>
             </div>
             <div>
               <p className={`text-xs font-semibold ${uiTokens.color.mutedText}`}>카테고리</p>
@@ -486,6 +488,8 @@ export function ComplianceReviewDetailPage() {
   const [isSubmittingFinalDecision, setIsSubmittingFinalDecision] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [submitMessage, setSubmitMessage] = useState('')
+  const [alertDialog, setAlertDialog] = useState<AlertDialogState | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [selectedClaimId, setSelectedClaimId] = useState('')
   const [selectedDecision, setSelectedDecision] = useState<Decision>('수정 요청')
@@ -551,11 +555,18 @@ export function ComplianceReviewDetailPage() {
     })
     setDrawerOpen(false)
   }, [comment, selectedClaim])
-  const submitFinalDecision = useCallback(async () => {
+  const submitConfirmedFinalDecision = useCallback(async () => {
     const comStatus = getComplianceProcessStatus(selectedDecision)
 
     if (!comStatus || !Number.isInteger(comId) || comId <= 0) {
-      setSubmitMessage('선택한 최종 판단은 제출할 수 없습니다.')
+      const message = '선택한 최종 판단은 제출할 수 없습니다.'
+
+      setSubmitMessage(message)
+      setAlertDialog({
+        title: '제출 불가',
+        message,
+        tone: 'danger',
+      })
       return
     }
 
@@ -570,11 +581,42 @@ export function ComplianceReviewDetailPage() {
       })
       navigate('/evidence-pack')
     } catch {
-      setSubmitMessage('최종 판단 제출에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+      const message = '최종 판단 제출에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+
+      setSubmitMessage(message)
+      setAlertDialog({
+        title: '최종 판단 제출 실패',
+        message,
+        tone: 'danger',
+      })
     } finally {
       setIsSubmittingFinalDecision(false)
     }
   }, [comId, comment, navigate, selectedDecision, user.userId])
+  const submitFinalDecision = useCallback(() => {
+    const comStatus = getComplianceProcessStatus(selectedDecision)
+
+    if (!comStatus || !Number.isInteger(comId) || comId <= 0) {
+      const message = '선택한 최종 판단은 제출할 수 없습니다.'
+
+      setSubmitMessage(message)
+      setAlertDialog({
+        title: '제출 불가',
+        message,
+        tone: 'danger',
+      })
+      return
+    }
+
+    setConfirmDialog({
+      title: '최종 판단 제출',
+      message: `${selectedDecision} 판단을 제출하고 최종 Evidence Pack을 생성할까요?`,
+      confirmLabel: '제출',
+      onConfirm: () => {
+        void submitConfirmedFinalDecision()
+      },
+    })
+  }, [comId, selectedDecision, submitConfirmedFinalDecision])
 
   return (
     <div className="w-full pb-12">
@@ -628,6 +670,8 @@ export function ComplianceReviewDetailPage() {
           claimCommentApplied={selectedClaimCommentApplied}
         />
       )}
+      <AlertDialog state={alertDialog} onClose={() => setAlertDialog(null)} />
+      <ConfirmDialog state={confirmDialog} onCancel={() => setConfirmDialog(null)} />
     </div>
   )
 }

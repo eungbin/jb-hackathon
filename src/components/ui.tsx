@@ -139,6 +139,94 @@ export function Button({
   )
 }
 
+export type AlertDialogState = {
+  title: string
+  message: ReactNode
+  tone?: 'info' | 'success' | 'danger'
+}
+
+export type ConfirmDialogState = {
+  title: string
+  message: ReactNode
+  confirmLabel?: string
+  cancelLabel?: string
+  tone?: 'primary' | 'danger'
+  onConfirm: () => void
+}
+
+export function AlertDialog({
+  state,
+  onClose,
+}: {
+  state: AlertDialogState | null
+  onClose: () => void
+}) {
+  if (!state) {
+    return null
+  }
+
+  const buttonTone = state.tone === 'danger' ? 'danger' : 'primary'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <button className="absolute inset-0 bg-slate-950/30" aria-label="닫기" type="button" onClick={onClose} />
+      <section
+        aria-modal="true"
+        className={`${uiTokens.radius.panel} relative w-full max-w-md border ${uiTokens.color.borderStrong} ${uiTokens.color.surface} ${uiTokens.spacing.card} ${uiTokens.shadow.panel}`}
+        role="dialog"
+      >
+        <h2 className={uiTokens.typography.cardTitle}>{state.title}</h2>
+        <div className={`mt-3 ${uiTokens.typography.body} ${uiTokens.color.bodyText}`}>{state.message}</div>
+        <div className="mt-6 flex justify-end">
+          <Button variant={buttonTone} onClick={onClose}>확인</Button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export function ConfirmDialog({
+  state,
+  onCancel,
+}: {
+  state: ConfirmDialogState | null
+  onCancel: () => void
+}) {
+  if (!state) {
+    return null
+  }
+
+  const confirmTone = state.tone ?? 'primary'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <button className="absolute inset-0 bg-slate-950/30" aria-label="취소" type="button" onClick={onCancel} />
+      <section
+        aria-modal="true"
+        className={`${uiTokens.radius.panel} relative w-full max-w-md border ${uiTokens.color.borderStrong} ${uiTokens.color.surface} ${uiTokens.spacing.card} ${uiTokens.shadow.panel}`}
+        role="dialog"
+      >
+        <h2 className={uiTokens.typography.cardTitle}>{state.title}</h2>
+        <div className={`mt-3 ${uiTokens.typography.body} ${uiTokens.color.bodyText}`}>{state.message}</div>
+        <div className="mt-6 flex justify-end gap-2">
+          <Button variant="secondary" onClick={onCancel}>{state.cancelLabel ?? '취소'}</Button>
+          <Button
+            variant={confirmTone === 'danger' ? 'danger' : 'primary'}
+            onClick={() => {
+              const action = state.onConfirm
+
+              onCancel()
+              action()
+            }}
+          >
+            {state.confirmLabel ?? '확인'}
+          </Button>
+        </div>
+      </section>
+    </div>
+  )
+}
+
 export function Badge({
   children,
   tone = 'gray',

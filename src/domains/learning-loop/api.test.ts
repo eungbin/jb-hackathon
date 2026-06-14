@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fetchLearningList, normalizeLearningListResponse, processLearning } from './api'
+import { LearningProcessApiError, fetchLearningList, normalizeLearningListResponse, processLearning } from './api'
 
 describe('normalizeLearningListResponse', () => {
   it('maps /learning/list response to learning loop rows', () => {
@@ -96,11 +96,41 @@ describe('processLearning', () => {
       return new Response(null, { status: 200 })
     }
 
-    await processLearning(3, 'APPROVED', fetcher)
+    const result = await processLearning(3, 'REJECT', fetcher)
 
     expect(calls[0].url).toBe('/api/learning/3/process')
     expect(calls[0].init?.method).toBe('PATCH')
     expect(calls[0].init?.headers).toEqual({ 'Content-Type': 'application/json' })
-    expect(JSON.parse(String(calls[0].init?.body))).toEqual({ learningStatus: 'APPROVED' })
+    expect(JSON.parse(String(calls[0].init?.body))).toEqual({ learningStatus: 'REJECT' })
+    expect(result).toBeNull()
+  })
+
+  it('returns the approved learning process response body', async () => {
+    const fetcher: typeof fetch = async () => new Response(JSON.stringify({
+      learningUniqueId: 'LRN-00001',
+      learningStatus: 'APPROVED',
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    await expect(processLearning(3, 'APPROVED', fetcher)).resolves.toEqual({
+      learningUniqueId: 'LRN-00001',
+      learningStatus: 'APPROVED',
+    })
+  })
+
+  it('throws a typed process error when the AI server returns 502', async () => {
+    const fetcher: typeof fetch = async () => new Response(JSON.stringify({
+      code: 'A002',
+    }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' },
+    })
+
+    await expect(processLearning(3, 'APPROVED', fetcher)).rejects.toMatchObject({
+      status: 502,
+    })
+    await expect(processLearning(3, 'APPROVED', fetcher)).rejects.toBeInstanceOf(LearningProcessApiError)
   })
 })

@@ -19,6 +19,20 @@ describe('ProductTruthCreatePage API integration', () => {
     expect(source).toContain('uploadedFiles')
   })
 
+  it('confirms product registration and alerts AI analysis or registration failures', () => {
+    const source = pageSources['./ProductTruthCreatePage.tsx']
+
+    expect(source).toContain('AlertDialog')
+    expect(source).toContain('ConfirmDialog')
+    expect(source).toContain('requestAnalyzeDraft')
+    expect(source).toContain('requestProductRegistration')
+    expect(source).toContain('submitConfirmedProductRegistration')
+    expect(source).toContain('setConfirmDialog({')
+    expect(source).toContain('setAlertDialog({')
+    expect(source).toContain('onClick={requestProductRegistration}')
+    expect(source).toContain('onClick={requestAnalyzeDraft}')
+  })
+
   it('shows a spinner while AI draft is being created', () => {
     const source = pageSources['./ProductTruthCreatePage.tsx']
 

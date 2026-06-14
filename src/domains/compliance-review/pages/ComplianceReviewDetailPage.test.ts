@@ -33,7 +33,17 @@ describe('ComplianceReviewDetailPage', () => {
     const source = pageSources['./ComplianceReviewDetailPage.tsx']
 
     expect(source).toMatch(/<td className="min-w-\[124px\] px-3 py-4">\s*<TypePill label=\{claim\.verificationResult\} \/>/)
+    expect(source).toMatch(/AI 검증결과[\s\S]*<TypePill label=\{claim\.verificationResult\} \/>/)
+    expect(source).not.toContain('uiTokens.color.danger}`}>{claim.verificationResult}')
     expect(source).not.toContain('CheckCircle2')
+  })
+
+  it('keeps the evidence drawer risk label from wrapping when claim text spans lines', () => {
+    const source = pageSources['./ComplianceReviewDetailPage.tsx']
+
+    expect(source).toContain('shrink-0 whitespace-nowrap')
+    expect(source).toContain('<div className="flex items-start gap-2">')
+    expect(source).toContain('min-w-0 text-xs font-bold')
   })
 
   it('uses a text-only evidence action label in the claims table', () => {
