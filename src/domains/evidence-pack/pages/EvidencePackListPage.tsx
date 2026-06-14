@@ -7,6 +7,8 @@ import type { DataTableSortDirection } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import { updateTextField } from '../../../utils/formState'
 import { formatChannel } from '../../../utils/labels'
+import { processLearning } from '../../learning-loop/api'
+import type { LearningProcessStatus } from '../../learning-loop/api'
 import { fetchEvidencePackResults } from '../api'
 import type { EvidencePackComplianceStatus, EvidencePackLearningStatus, EvidencePackRow } from '../api'
 
@@ -77,13 +79,34 @@ function ComplianceStatusBadge({ status }: { status: EvidencePackComplianceStatu
   return <Badge tone={complianceStatusTones[status]}>{complianceStatusLabels[status]}</Badge>
 }
 
-function EvidenceLearningAction({ status }: { status: EvidencePackLearningStatus }) {
-  if (!status) {
+function EvidenceLearningAction({
+  learningId,
+  processingLearningId,
+  status,
+  onProcessLearning,
+}: {
+  learningId: number | null
+  processingLearningId: number | null
+  status: EvidencePackLearningStatus
+  onProcessLearning: (learningId: number, learningStatus: LearningProcessStatus) => void
+}) {
+  if (!status || learningId === null) {
     return <Button variant="secondary" className="h-8 min-w-[76px] px-3 text-xs" disabled>미생성</Button>
   }
 
   if (status === 'PENDING') {
-    return <Button className="h-8 min-w-[76px] px-3 text-xs">적재하기</Button>
+    const isProcessing = processingLearningId === learningId
+
+    return (
+      <div className="flex gap-1">
+        <Button variant="secondary" className="h-8 min-w-[56px] px-2 text-xs" disabled={isProcessing} onClick={() => onProcessLearning(learningId, 'APPROVED')}>
+          승인
+        </Button>
+        <Button variant="secondary" className="h-8 min-w-[56px] px-2 text-xs" disabled={isProcessing} onClick={() => onProcessLearning(learningId, 'REJECT')}>
+          거절
+        </Button>
+      </div>
+    )
   }
 
   return (
@@ -101,6 +124,8 @@ export function EvidencePackListPage() {
   const [items, setItems] = useState<EvidencePackRow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
+  const [processingLearningId, setProcessingLearningId] = useState<number | null>(null)
   const [filters, setFilters] = useState<PackFilters>(initialFilters)
   const [appliedFilters, setAppliedFilters] = useState<PackFilters>(initialFilters)
   const [currentPage, setCurrentPage] = useState(1)
@@ -134,7 +159,21 @@ export function EvidencePackListPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadKey])
+
+  const processPackLearning = async (learningId: number, learningStatus: LearningProcessStatus) => {
+    setProcessingLearningId(learningId)
+    setErrorMessage('')
+
+    try {
+      await processLearning(learningId, learningStatus)
+      setReloadKey((current) => current + 1)
+    } catch {
+      setErrorMessage('Learning Loop 처리 요청에 실패했습니다. 잠시 후 다시 시도해 주세요.')
+    } finally {
+      setProcessingLearningId(null)
+    }
+  }
 
   const filteredItems = items.filter((pack) => {
     const query = appliedFilters.query.trim().toLowerCase()
@@ -241,7 +280,12 @@ export function EvidencePackListPage() {
             <td className={uiTokens.spacing.tableCell}>{pack.finalizedAt}</td>
             <td className={uiTokens.spacing.tableCell}>{pack.reviewer}</td>
             <td className={uiTokens.spacing.tableCell}>
-              <EvidenceLearningAction status={pack.learningStatus} />
+              <EvidenceLearningAction
+                learningId={pack.learningId}
+                processingLearningId={processingLearningId}
+                status={pack.learningStatus}
+                onProcessLearning={processPackLearning}
+              />
             </td>
             <td className={uiTokens.spacing.tableCell}>
               <Link to={`/evidence-pack/${pack.comId}`}>

@@ -6,6 +6,7 @@ export type EvidencePackLearningStatus = 'PENDING' | 'REJECT' | 'APPROVED' | nul
 export type EvidencePackResultsResponse = Array<{
   comEpId: string
   comId: number
+  learningId: number | null
   comUniqueId: string
   comTitle: string
   productName: string
@@ -20,6 +21,7 @@ export type EvidencePackResultsResponse = Array<{
 export type EvidencePackRow = {
   packId: string
   comId: number
+  learningId: number | null
   contentId: string
   title: string
   productName: string
@@ -133,6 +135,7 @@ function isResultItem(value: unknown): value is EvidencePackResultsResponse[numb
   return (
     typeof candidate.comEpId === 'string'
     && typeof candidate.comId === 'number'
+    && (candidate.learningId === null || typeof candidate.learningId === 'number')
     && typeof candidate.comUniqueId === 'string'
     && typeof candidate.comTitle === 'string'
     && typeof candidate.productName === 'string'
@@ -340,6 +343,7 @@ export function normalizeEvidencePackResultsResponse(response: EvidencePackResul
   return response.map((item) => ({
     packId: item.comEpId,
     comId: item.comId,
+    learningId: item.learningId,
     contentId: item.comUniqueId,
     title: item.comTitle,
     productName: item.productName,

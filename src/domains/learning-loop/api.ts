@@ -6,6 +6,7 @@ export type LearningListResponse = Array<{
   learningId: number
   learningUniqueId: string
   comId: number
+  comEpId: string
   comUniqueId: string
   comTitle: string
   comScore: number | null
@@ -17,7 +18,8 @@ export type LearningLoopRow = {
   learningId: number
   candidateId: string
   comId: number
-  sourcePackId: string
+  evidencePackId: string
+  contentId: string
   productTitle: string
   score: string
   loadStatus: LearningLoopLoadStatus
@@ -39,6 +41,7 @@ function isLearningListItem(value: unknown): value is LearningListResponse[numbe
     typeof candidate.learningId === 'number'
     && typeof candidate.learningUniqueId === 'string'
     && typeof candidate.comId === 'number'
+    && typeof candidate.comEpId === 'string'
     && typeof candidate.comUniqueId === 'string'
     && typeof candidate.comTitle === 'string'
     && (candidate.comScore === null || typeof candidate.comScore === 'number')
@@ -64,7 +67,8 @@ export function normalizeLearningListResponse(response: LearningListResponse): L
     learningId: item.learningId,
     candidateId: item.learningUniqueId,
     comId: item.comId,
-    sourcePackId: item.comUniqueId,
+    evidencePackId: item.comEpId,
+    contentId: item.comUniqueId,
     productTitle: item.comTitle,
     score: displayNullable(item.comScore),
     loadStatus: normalizeStatus(item.learningStatus),

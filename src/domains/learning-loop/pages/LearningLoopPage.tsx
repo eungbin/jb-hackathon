@@ -8,7 +8,7 @@ import { fetchLearningList, processLearning } from '../api'
 import type { LearningLoopRow, LearningProcessStatus } from '../api'
 
 const pageSize = 5
-type LearningSortKey = 'candidateId' | 'sourcePackId' | 'productTitle' | 'loadStatus'
+type LearningSortKey = 'candidateId' | 'evidencePackId' | 'contentId' | 'productTitle' | 'loadStatus'
 type LearningFilters = {
   query: string
   loadStatus: string
@@ -27,7 +27,8 @@ const loadStatusLabels = {
 
 const learningTableHeaders = [
   { label: 'Candidate ID', sortKey: 'candidateId' },
-  { label: '콘텐츠 ID', sortKey: 'sourcePackId' },
+  { label: 'Evidence Pack ID', sortKey: 'evidencePackId' },
+  { label: '콘텐츠 ID', sortKey: 'contentId' },
   { label: '콘텐츠 제목', sortKey: 'productTitle' },
   { label: '적재 상태', sortKey: 'loadStatus' },
   { label: '액션', sortable: false },
@@ -92,7 +93,7 @@ export function LearningLoopPage() {
 
   const filteredItems = items.filter((candidate) => {
     const query = appliedFilters.query.trim().toLowerCase()
-    const searchableText = [candidate.candidateId, candidate.sourcePackId, candidate.productTitle].join(' ').toLowerCase()
+    const searchableText = [candidate.candidateId, candidate.evidencePackId, candidate.contentId, candidate.productTitle].join(' ').toLowerCase()
 
     return (
       (!query || searchableText.includes(query)) &&
@@ -197,7 +198,12 @@ export function LearningLoopPage() {
             <td className={`${uiTokens.spacing.tableCellRelaxed} font-mono text-xs`}>{candidate.candidateId}</td>
             <td className={uiTokens.spacing.tableCellRelaxed}>
               <Link className={uiTokens.typography.linkText} to={`/evidence-pack/${candidate.comId}`}>
-                {candidate.sourcePackId}
+                {candidate.evidencePackId}
+              </Link>
+            </td>
+            <td className={uiTokens.spacing.tableCellRelaxed}>
+              <Link className={uiTokens.typography.linkText} to="/product-truth">
+                {candidate.contentId}
               </Link>
             </td>
             <td className={uiTokens.spacing.tableCellRelaxed}>
@@ -215,7 +221,7 @@ export function LearningLoopPage() {
         ))}
         {paginatedItems.length === 0 && (
           <tr>
-            <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={5}>
+            <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={6}>
               표시할 Learning Loop 후보가 없습니다.
             </td>
           </tr>
@@ -244,9 +250,24 @@ export function LearningLoopPage() {
               <p className={`mt-2 ${uiTokens.typography.helper}`}>Score {selectedCandidate.score}</p>
             </Card>
             <Card title="연결 콘텐츠">
-              <Link className={uiTokens.typography.linkText} to={`/evidence-pack/${selectedCandidate.comId}`}>
-                {selectedCandidate.sourcePackId}
-              </Link>
+              <dl className="grid gap-3 text-sm">
+                <div>
+                  <dt className={uiTokens.color.mutedText}>Evidence Pack ID</dt>
+                  <dd>
+                    <Link className={uiTokens.typography.linkText} to={`/evidence-pack/${selectedCandidate.comId}`}>
+                      {selectedCandidate.evidencePackId}
+                    </Link>
+                  </dd>
+                </div>
+                <div>
+                  <dt className={uiTokens.color.mutedText}>콘텐츠 ID</dt>
+                  <dd>
+                    <Link className={uiTokens.typography.linkText} to="/product-truth">
+                      {selectedCandidate.contentId}
+                    </Link>
+                  </dd>
+                </div>
+              </dl>
             </Card>
             <Card title="적재 가능한 형태의 문서" subtitle="Evidence Pack에서 참조 문서로 적재된 형태의 미리보기입니다.">
               <div className={`${uiTokens.radius.panel} border ${uiTokens.color.border} ${uiTokens.color.surfaceMuted} p-4`}>
@@ -254,7 +275,8 @@ export function LearningLoopPage() {
                 <pre className={`mt-3 whitespace-pre-wrap break-words font-mono text-xs leading-5 ${uiTokens.color.headingText}`}>
                   {JSON.stringify({
                     candidate_id: selectedCandidate.candidateId,
-                    source_content_id: selectedCandidate.sourcePackId,
+                    evidence_pack_id: selectedCandidate.evidencePackId,
+                    source_content_id: selectedCandidate.contentId,
                     compliance_id: selectedCandidate.comId,
                     document_type: 'learning_candidate',
                     load_status: loadStatusLabels[selectedCandidate.loadStatus],

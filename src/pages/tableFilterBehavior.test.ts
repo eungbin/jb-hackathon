@@ -51,11 +51,15 @@ describe('table filter behavior', () => {
     const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
 
     expect(source).toContain('function EvidenceLearningAction')
+    expect(source).toContain('processLearning')
+    expect(source).toContain('LearningProcessStatus')
     expect(source).toContain("if (status === 'PENDING')")
-    expect(source).toContain('적재하기')
-    expect(source).toContain('승인됨')
-    expect(source).toContain('거절됨')
-    expect(source).toContain('<EvidenceLearningAction status={pack.learningStatus} />')
+    expect(source).toContain("onProcessLearning(learningId, 'APPROVED')")
+    expect(source).toContain("onProcessLearning(learningId, 'REJECT')")
+    expect(source).toContain('<EvidenceLearningAction')
+    expect(source).toContain('learningId={pack.learningId}')
+    expect(source).toContain('status={pack.learningStatus}')
+    expect(source).not.toContain('적재하기')
     expect(source).not.toContain('EvidenceLearningBadge')
   })
 

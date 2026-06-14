@@ -27,7 +27,10 @@ describe('LearningLoopPage candidate details', () => {
     const source = pageSources['./LearningLoopPage.tsx']
 
     expect(source).toContain("'productTitle'")
-    expect(source).toContain("{ label: '콘텐츠 ID', sortKey: 'sourcePackId' }")
+    expect(source).toContain("'evidencePackId'")
+    expect(source).toContain("'contentId'")
+    expect(source).toContain("{ label: 'Evidence Pack ID', sortKey: 'evidencePackId' }")
+    expect(source).toContain("{ label: '콘텐츠 ID', sortKey: 'contentId' }")
     expect(source).toContain("{ label: '콘텐츠 제목', sortKey: 'productTitle' }")
     expect(source).not.toContain("<p className={uiTokens.typography.helper}>{candidate.productTitle}</p>")
   })
@@ -68,11 +71,13 @@ describe('LearningLoopPage candidate details', () => {
     expect(dataSource).not.toContain('redactionStatus')
   })
 
-  it('links content ids to evidence pack detail by compliance id', () => {
+  it('links evidence pack ids to evidence detail and content ids to product truth', () => {
     const source = pageSources['./LearningLoopPage.tsx']
 
     expect(source).toContain("import { Link } from 'react-router-dom'")
     expect(source).toContain('to={`/evidence-pack/${candidate.comId}`}')
+    expect(source).toContain('{candidate.evidencePackId}')
+    expect(source).toContain('{candidate.contentId}')
     expect(source).toContain('to="/product-truth"')
   })
 
@@ -87,9 +92,12 @@ describe('LearningLoopPage candidate details', () => {
     const source = pageSources['./LearningLoopPage.tsx']
 
     expect(source).toContain('to={`/evidence-pack/${selectedCandidate.comId}`}')
+    expect(source).toContain('{selectedCandidate.evidencePackId}')
+    expect(source).toContain('{selectedCandidate.contentId}')
     expect(source).toContain('적재 가능한 형태의 문서')
     expect(source).toContain('적재 문서 미리보기')
     expect(source).toContain('JSON.stringify')
+    expect(source).toContain('evidence_pack_id')
     expect(source).toContain('learning_content')
     expect(source).not.toContain('dataset_type')
   })

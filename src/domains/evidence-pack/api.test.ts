@@ -7,6 +7,7 @@ describe('normalizeEvidencePackResultsResponse', () => {
       {
         comEpId: 'EP-2024-00001',
         comId: 1,
+        learningId: 101,
         comUniqueId: 'CNT-00001',
         comTitle: '여름 적금 이벤트 앱푸시',
         productName: 'JB 첫 적금',
@@ -20,6 +21,7 @@ describe('normalizeEvidencePackResultsResponse', () => {
       {
         comEpId: 'EP-2024-00002',
         comId: 2,
+        learningId: null,
         comUniqueId: 'CNT-00002',
         comTitle: 'AI 분석 실패 콘텐츠',
         productName: 'JB 대출',
@@ -36,6 +38,7 @@ describe('normalizeEvidencePackResultsResponse', () => {
       {
         packId: 'EP-2024-00001',
         comId: 1,
+        learningId: 101,
         contentId: 'CNT-00001',
         title: '여름 적금 이벤트 앱푸시',
         productName: 'JB 첫 적금',
@@ -49,6 +52,7 @@ describe('normalizeEvidencePackResultsResponse', () => {
       {
         packId: 'EP-2024-00002',
         comId: 2,
+        learningId: null,
         contentId: 'CNT-00002',
         title: 'AI 분석 실패 콘텐츠',
         productName: 'JB 대출',
@@ -73,6 +77,7 @@ describe('fetchEvidencePackResults', () => {
         {
           comEpId: 'EP-2024-00001',
           comId: 1,
+          learningId: 101,
           comUniqueId: 'CNT-00001',
           comTitle: '여름 적금 이벤트 앱푸시',
           productName: 'JB 첫 적금',
@@ -101,6 +106,7 @@ describe('fetchEvidencePackResults', () => {
       {
         comEpId: 'EP-2024-00001',
         comId: 1,
+        learningId: null,
         comUniqueId: 'CNT-00001',
         comTitle: 'AI 분석 실패 콘텐츠',
         productName: 'JB 첫 적금',
