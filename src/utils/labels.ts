@@ -2,7 +2,6 @@ import type {
   InputStatus,
   LearningStatus,
   ProductDocumentType,
-  ProductFactType,
   ProductStatus,
   ReviewDecision,
   RiskLevel,
@@ -60,18 +59,6 @@ export const documentTypeLabels: Record<ProductDocumentType, string> = {
   RATE_TABLE: '금리표',
   FEE_TABLE: '수수료표',
   DISCLOSURE_GUIDE: '고지 가이드',
-  OTHER: '기타',
-}
-
-export const factTypeLabels: Record<ProductFactType, string> = {
-  RATE: '금리',
-  ELIGIBILITY: '가입 조건',
-  LIMIT: '한도',
-  FEE: '수수료',
-  TERM: '기간',
-  BENEFIT: '혜택',
-  RISK_NOTICE: '위험 고지',
-  CHANNEL: '채널',
   OTHER: '기타',
 }
 

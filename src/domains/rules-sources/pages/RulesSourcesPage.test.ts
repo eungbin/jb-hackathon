@@ -29,4 +29,12 @@ describe('RulesSourcesPage API integration', () => {
 
     expect(source).not.toContain('{document.status}')
   })
+
+  it('renders risk level as a separate rule table column', () => {
+    const source = pageSources['./RulesSourcesPage.tsx']
+
+    expect(source).toContain("headers={['Rule ID', '규칙명', '위험등급', '탐지 키워드 및 필수 고지 (Rules)', '액션']}")
+    expect(source).toMatch(/<td className=\{uiTokens\.spacing\.tableCellRelaxed\}>\s*\{rule\.severity \? <RiskBadge level=\{rule\.severity\} \/> : <Badge>미지정<\/Badge>\}\s*<\/td>/)
+    expect(source).toContain('colSpan={5}')
+  })
 })

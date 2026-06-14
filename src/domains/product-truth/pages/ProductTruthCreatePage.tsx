@@ -1,15 +1,15 @@
 import { useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { CheckCircle2, Plus, ShieldAlert } from 'lucide-react'
-import { Button, Card, DataTable, Field, InputStatusBadge, PageHeader, TextareaField } from '../../../components/ui'
+import { Button, Card, DataTable, Field, InputStatusBadge, PageHeader, SelectField, TextareaField } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import type { ProductFact, SourceDocument } from '../../../types'
-import { documentTypeLabels, factTypeLabels } from '../../../utils/labels'
+import { documentTypeLabels } from '../../../utils/labels'
 import { useAuth } from '../../auth/AuthContext'
 import { analyzeProductFiles, createProduct } from '../api'
 import { ProductFactDrawer } from '../components/ProductFactDrawer'
 import { SourceDocumentDrawer } from '../components/SourceDocumentDrawer'
-import { applyProductAiAnalysisResult, createInitialProductForm, emptyFact, statusFromDocument, statusFromFact } from '../utils/productForm'
+import { applyProductAiAnalysisResult, createInitialProductForm, emptyFact, productGroupOptions, statusFromDocument, statusFromFact } from '../utils/productForm'
 import { determineProductStatus, validateProductCreate, type ProductCreateForm } from '../utils/productCreateValidation'
 
 export function ProductTruthCreatePage() {
@@ -25,6 +25,7 @@ export function ProductTruthCreatePage() {
   const [documentDraft, setDocumentDraft] = useState<SourceDocument | null>(null)
   const [factIndex, setFactIndex] = useState<number | null>(null)
   const [factDraft, setFactDraft] = useState<ProductFact | null>(null)
+  const [productFactPage, setProductFactPage] = useState(1)
 
   const setField = (field: keyof ProductCreateForm, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
@@ -39,6 +40,7 @@ export function ProductTruthCreatePage() {
 
     setUploadedFiles(nextFiles)
     setRegisteredStatus(null)
+    setProductFactPage(1)
 
     if (nextFiles.length === 0) {
       return
@@ -79,6 +81,7 @@ export function ProductTruthCreatePage() {
     try {
       const analysis = await analyzeProductFiles(uploadedFiles)
       setForm((current) => applyProductAiAnalysisResult(current, uploadedFiles, analysis))
+      setProductFactPage(1)
       setRegisteredStatus('근거문서 기반 AI 초안 작성이 완료되었습니다. 내용을 확인한 뒤 등록해 주세요.')
     } catch {
       setErrors(['AI 분석 요청에 실패했습니다. 파일 형식과 용량을 확인한 뒤 다시 시도해 주세요.'])
@@ -134,6 +137,24 @@ export function ProductTruthCreatePage() {
     setFactIndex(null)
   }
 
+  const deleteFact = () => {
+    if (factIndex === null) {
+      return
+    }
+
+    setForm((current) => ({
+      ...current,
+      productFacts: current.productFacts.filter((_, index) => index !== factIndex),
+    }))
+    setFactDraft(null)
+    setFactIndex(null)
+  }
+
+  const productFactPageSize = 5
+  const productFactTotalPages = Math.max(1, Math.ceil(form.productFacts.length / productFactPageSize))
+  const visibleProductFactPage = Math.min(productFactPage, productFactTotalPages)
+  const paginatedProductFacts = form.productFacts.slice((visibleProductFactPage - 1) * productFactPageSize, visibleProductFactPage * productFactPageSize)
+
   return (
     <>
       <PageHeader
@@ -172,25 +193,18 @@ export function ProductTruthCreatePage() {
           </div>
         </Card>
       )}
-      <div className={`${uiTokens.spacing.stack} xl:grid-cols-[250px_minmax(0,936px)_387px]`}>
-        <Card title="등록 단계">
-          <div className={`mb-5 ${uiTokens.radius.panel} ${uiTokens.color.primarySurface} ${uiTokens.spacing.cardCompact}`}>
-            <p className={`${uiTokens.typography.tableHeader} ${uiTokens.color.primary}`}>Completion</p>
-            <p className={`mt-1 ${uiTokens.typography.metricValue} ${uiTokens.color.primary}`}>72%</p>
-            <div className="mt-3 h-2 rounded-full bg-blue-100">
-              <div className="h-2 w-[72%] rounded-full bg-blue-700" />
-            </div>
-          </div>
-          <ol className={`${uiTokens.spacing.stackCompact} ${uiTokens.typography.label}`}>
-            {['근거 문서', '상품 기본정보', 'Product Fact'].map((step, index) => (
-              <li key={step} className="flex items-center gap-2">
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs text-blue-700">{index + 1}</span>
-                {step}
-              </li>
-            ))}
-          </ol>
-        </Card>
-        <div className={uiTokens.spacing.stack}>
+      <div className={uiTokens.spacing.stack}>
+        <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_280px]">
+          <Card title="등록 단계">
+            <ol className={`${uiTokens.spacing.stackCompact} ${uiTokens.typography.label}`}>
+              {['근거 문서', '상품 기본정보', 'Product Fact'].map((step, index) => (
+                <li key={step} className="flex items-center gap-2">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-50 text-xs text-blue-700">{index + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </Card>
           <Card title="근거 문서">
             <label className={`mb-4 flex cursor-pointer items-center justify-center ${uiTokens.radius.compact} border border-dashed ${uiTokens.color.borderStrong} ${uiTokens.color.surfaceMuted} px-4 py-8 ${uiTokens.typography.label} ${uiTokens.color.mutedText}`}>
               파일 업로드 UI
@@ -215,7 +229,7 @@ export function ProductTruthCreatePage() {
                       variant="secondary"
                       onClick={() => {
                         setDocumentIndex(index)
-                        setDocumentDraft(document)
+                        setDocumentDraft({ ...document, documentType: document.documentType || 'PRODUCT_DESCRIPTION' })
                       }}
                     >
                       수정
@@ -224,52 +238,98 @@ export function ProductTruthCreatePage() {
                 </tr>
               ))}
             </DataTable>
-          </Card>
-          <div className="flex justify-end">
-            <Button variant="secondary" disabled={isAnalyzing || uploadedFiles.length === 0} onClick={analyzeDraft}>
-              {isAnalyzing ? 'AI 초안 작성 중' : '근거문서 기반 AI 초안 작성'}
-            </Button>
-          </div>
-          <Card title="상품 기본정보">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="상품명" value={form.productName} onChange={(value) => setField('productName', value)} />
-              <Field label="상품 코드" value={form.productCode} onChange={(value) => setField('productCode', value)} />
-              <Field label="상품 카테고리" value={form.subCategory} onChange={setProductCategory} />
-            </div>
-            <div className="mt-4">
-              <TextareaField label="상품 설명" value={form.description} onChange={(value) => setField('description', value)} rows={4} />
-            </div>
-          </Card>
-          <Card
-            title="Product Fact"
-            subtitle="상품 Claim 검증에 사용되는 기준값입니다."
-          >
-            <div className="mb-4 flex justify-end">
-              <Button variant="secondary" onClick={() => {
-                setFactIndex(null)
-                setFactDraft(emptyFact(form))
-              }}>
-                <Plus size={16} />
-                Product Fact 추가
+            <div className="mt-4 flex justify-end">
+              <Button variant="secondary" disabled={isAnalyzing || uploadedFiles.length === 0} onClick={analyzeDraft}>
+                {isAnalyzing ? 'AI 초안 작성 중' : '근거문서 기반 AI 초안 작성'}
               </Button>
             </div>
-            <DataTable headers={['FACT TYPE', 'PRODUCT FACT', 'VALUE', 'UNIT', 'CONDITION', 'SOURCE LOCATOR', 'STATUS', 'ACTION']}>
-              {form.productFacts.map((fact, index) => (
+          </Card>
+          <Card title="등록 요약">
+            <dl className={`${uiTokens.spacing.stackCompact} text-sm`}>
+              <div className="flex justify-between gap-4">
+                <dt className={uiTokens.color.mutedText}>상품명</dt>
+                <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.productName}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className={uiTokens.color.mutedText}>버전</dt>
+                <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.versionLabel}</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className={uiTokens.color.mutedText}>근거 문서</dt>
+                <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.sourceDocuments.length}건</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className={uiTokens.color.mutedText}>Product Fact</dt>
+                <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.productFacts.length}건</dd>
+              </div>
+              <div className="flex justify-between gap-4">
+                <dt className={uiTokens.color.mutedText}>예상 상태</dt>
+                <dd className={`font-semibold ${uiTokens.color.headingText}`}>{determineProductStatus(form.effectiveStartDate, '2026-06-01')}</dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
+        <Card title="상품 기본정보">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Field label="상품명" value={form.productName} onChange={(value) => setField('productName', value)} />
+            <Field label="상품 코드" value={form.productCode} onChange={(value) => setField('productCode', value)} />
+            <SelectField
+              label="상품군"
+              value={form.subCategory}
+              onChange={setProductCategory}
+              options={[
+                { value: '', label: '상품군을 선택해주세요.' },
+                ...productGroupOptions.map((category) => ({ value: category, label: category })),
+              ]}
+            />
+          </div>
+          <div className="mt-4">
+            <TextareaField label="상품 설명" value={form.description} onChange={(value) => setField('description', value)} rows={4} />
+          </div>
+        </Card>
+        <Card
+          title="Product Fact"
+          subtitle="상품 Claim 검증에 사용되는 기준값입니다."
+        >
+          <div className="mb-4 flex justify-end">
+            <Button variant="secondary" onClick={() => {
+              setFactIndex(null)
+              setFactDraft(emptyFact(form))
+            }}>
+              <Plus size={16} />
+              Product Fact 추가
+            </Button>
+          </div>
+          <DataTable
+            headers={['FACT TYPE', 'PRODUCT FACT', 'VALUE', 'UNIT', 'CONDITION', 'SOURCE LOCATOR', 'STATUS', 'ACTION']}
+            pagination={{
+              currentPage: visibleProductFactPage,
+              itemLabel: 'Product Fact',
+              onPageChange: setProductFactPage,
+              pageSize: productFactPageSize,
+              totalItems: form.productFacts.length,
+              totalPages: productFactTotalPages,
+            }}
+          >
+            {paginatedProductFacts.map((fact, index) => {
+              const actualFactIndex = (visibleProductFactPage - 1) * productFactPageSize + index
+
+              return (
                 <tr key={fact.factId}>
-                  <td className={uiTokens.spacing.tableCell}>{fact.factType ? factTypeLabels[fact.factType] : '-'}</td>
+                  <td className={uiTokens.spacing.tableCell}>{fact.factType || '-'}</td>
                   <td className={`${uiTokens.spacing.tableCell} font-semibold ${uiTokens.color.headingText}`}>{fact.factName}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.value}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.unit}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.condition || '-'}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.sourceLocator || '-'}</td>
-                  <td className={uiTokens.spacing.tableCell}>
+                  <td className={`${uiTokens.spacing.tableCell} whitespace-nowrap`}>
                     <InputStatusBadge status={fact.inputStatus} />
                   </td>
-                  <td className={uiTokens.spacing.tableCell}>
+                  <td className={`${uiTokens.spacing.tableCell} whitespace-nowrap`}>
                     <Button
                       variant="secondary"
                       onClick={() => {
-                        setFactIndex(index)
+                        setFactIndex(actualFactIndex)
                         setFactDraft(fact)
                       }}
                     >
@@ -277,33 +337,9 @@ export function ProductTruthCreatePage() {
                     </Button>
                   </td>
                 </tr>
-              ))}
-            </DataTable>
-          </Card>
-        </div>
-        <Card title="등록 요약" className="self-start">
-          <dl className={`${uiTokens.spacing.stackCompact} text-sm`}>
-            <div className="flex justify-between gap-4">
-              <dt className={uiTokens.color.mutedText}>상품명</dt>
-              <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.productName}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className={uiTokens.color.mutedText}>버전</dt>
-              <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.versionLabel}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className={uiTokens.color.mutedText}>근거 문서</dt>
-              <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.sourceDocuments.length}건</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className={uiTokens.color.mutedText}>Product Fact</dt>
-              <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.productFacts.length}건</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className={uiTokens.color.mutedText}>예상 상태</dt>
-              <dd className={`font-semibold ${uiTokens.color.headingText}`}>{determineProductStatus(form.effectiveStartDate, '2026-06-01')}</dd>
-            </div>
-          </dl>
+              )
+            })}
+          </DataTable>
         </Card>
       </div>
       <SourceDocumentDrawer
@@ -318,6 +354,7 @@ export function ProductTruthCreatePage() {
         sourceDocuments={form.sourceDocuments}
         onChange={setFactDraft}
         onClose={() => setFactDraft(null)}
+        onDelete={deleteFact}
         onSave={saveFact}
       />
     </>

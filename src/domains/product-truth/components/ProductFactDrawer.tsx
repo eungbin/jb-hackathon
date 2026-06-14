@@ -1,10 +1,10 @@
 import { Badge, Button, Drawer, Field, SelectField, TextareaField } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
-import type { ProductDocumentType, ProductFact, ProductFactType, SourceDocument } from '../../../types'
-import { documentTypeLabels, factTypeLabels } from '../../../utils/labels'
+import type { ProductDocumentType, ProductFact, SourceDocument } from '../../../types'
+import { documentTypeLabels } from '../../../utils/labels'
 
 const documentTypeOptions: ProductDocumentType[] = ['PRODUCT_DESCRIPTION', 'TERMS', 'RATE_TABLE', 'FEE_TABLE', 'DISCLOSURE_GUIDE', 'OTHER']
-const factTypeOptions: ProductFactType[] = ['RATE', 'ELIGIBILITY', 'LIMIT', 'FEE', 'TERM', 'BENEFIT', 'RISK_NOTICE', 'CHANNEL', 'OTHER']
+const factTypeOptions = ['RATE', 'ELIGIBILITY', 'LIMIT', 'FEE', 'TERM', 'BENEFIT', 'RISK_NOTICE', 'CHANNEL', 'OTHER']
 
 type ProductFactDrawerProps = {
   factDraft: ProductFact | null
@@ -12,10 +12,15 @@ type ProductFactDrawerProps = {
   sourceDocuments: SourceDocument[]
   onChange: (fact: ProductFact) => void
   onClose: () => void
+  onDelete?: () => void
   onSave: () => void
 }
 
-export function ProductFactDrawer({ factDraft, factIndex, sourceDocuments, onChange, onClose, onSave }: ProductFactDrawerProps) {
+export function ProductFactDrawer({ factDraft, factIndex, sourceDocuments, onChange, onClose, onDelete, onSave }: ProductFactDrawerProps) {
+  const currentFactTypeOptions = factDraft?.factType && !factTypeOptions.includes(factDraft.factType)
+    ? [factDraft.factType, ...factTypeOptions]
+    : factTypeOptions
+
   return (
     <Drawer
       title="Product Fact 입력 / 수정"
@@ -23,9 +28,14 @@ export function ProductFactDrawer({ factDraft, factIndex, sourceDocuments, onCha
       onClose={onClose}
       width="lg"
       footer={
-        <div className="flex justify-end gap-2">
-          <Button variant="secondary" onClick={onClose}>{factIndex === null ? '취소' : '닫기'}</Button>
-          <Button onClick={onSave}>{factIndex === null ? 'Fact 추가' : '변경 적용'}</Button>
+        <div className={`flex gap-2 ${factIndex !== null && onDelete ? 'justify-between' : 'justify-end'}`}>
+          {factIndex !== null && onDelete && (
+            <Button variant="danger" onClick={onDelete}>삭제</Button>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={onClose}>{factIndex === null ? '취소' : '닫기'}</Button>
+            <Button onClick={onSave}>{factIndex === null ? 'Fact 추가' : '변경 적용'}</Button>
+          </div>
         </div>
       }
     >
@@ -43,7 +53,7 @@ export function ProductFactDrawer({ factDraft, factIndex, sourceDocuments, onCha
           <section className="grid gap-4">
             <h3 className={`border-b ${uiTokens.color.borderStrong} pb-2 ${uiTokens.typography.label} ${uiTokens.color.mutedText}`}>1. FACT 기본정보</h3>
             <div className="grid gap-4 md:grid-cols-2">
-              <SelectField label="Fact Type*" value={factDraft.factType} onChange={(value) => onChange({ ...factDraft, factType: value as ProductFactType })} options={factTypeOptions.map((type) => ({ value: type, label: factTypeLabels[type] }))} />
+              <SelectField label="Fact Type*" value={factDraft.factType} onChange={(value) => onChange({ ...factDraft, factType: value })} options={currentFactTypeOptions.map((type) => ({ value: type, label: type }))} />
               <Field label="Product Fact*" value={factDraft.factName} onChange={(value) => onChange({ ...factDraft, factName: value })} />
               <div>
                 <p className={`${uiTokens.typography.label} ${uiTokens.color.mutedText}`}>상품명</p>
@@ -71,8 +81,6 @@ export function ProductFactDrawer({ factDraft, factIndex, sourceDocuments, onCha
               <div className="md:col-span-2">
                 <Field label="Condition" value={factDraft.condition ?? ''} onChange={(value) => onChange({ ...factDraft, condition: value })} />
               </div>
-              <Field label="적용 시작일*" value={factDraft.effectiveStartDate} onChange={(value) => onChange({ ...factDraft, effectiveStartDate: value })} />
-              <Field label="적용 종료일" value={factDraft.effectiveEndDate ?? ''} onChange={(value) => onChange({ ...factDraft, effectiveEndDate: value })} />
             </div>
           </section>
 

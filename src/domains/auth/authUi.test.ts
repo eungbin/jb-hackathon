@@ -31,6 +31,23 @@ describe('auth UI wiring', () => {
     expect(source).toContain('setUser(nextUser)')
   })
 
+  it('wires frontend-only logout from the app shell header', () => {
+    const appSource = authUiSources['../../App.tsx']
+    const contextSource = authUiSources['./AuthContext.tsx']
+    const appShellSource = authUiSources['../../components/layout/AppShell.tsx']
+
+    expect(appSource).toContain('clearStoredUser')
+    expect(appSource).toContain('function handleLogout()')
+    expect(appSource).toContain('clearStoredUser()')
+    expect(appSource).toContain('setUser(null)')
+    expect(appSource).toContain('onLogout={handleLogout}')
+    expect(contextSource).toContain('logout: () => void')
+    expect(contextSource).toContain('logout: onLogout')
+    expect(appShellSource).toContain('const { user, logout } = useAuth()')
+    expect(appShellSource).toContain('onClick={logout}')
+    expect(appShellSource).toContain('로그아웃')
+  })
+
   it('exposes login user information through auth context and app shell', () => {
     const contextSource = authUiSources['./AuthContext.tsx']
     const appShellSource = authUiSources['../../components/layout/AppShell.tsx']

@@ -40,7 +40,7 @@ export function validateProductCreate(form: ProductCreateForm): ValidationResult
   const requiredFields: Array<[string, string]> = [
     [form.productName, '상품명을 입력해 주세요.'],
     [form.productCode, '상품 코드를 입력해 주세요.'],
-    [form.subCategory || form.category, '상품 카테고리를 입력해 주세요.'],
+    [form.subCategory || form.category, '상품군을 선택해 주세요.'],
     [form.description, '상품 설명을 입력해 주세요.'],
   ]
 

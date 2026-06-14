@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/layout/AppShell'
-import { loginUser, readStoredUser, writeStoredUser } from './domains/auth/auth'
+import { clearStoredUser, loginUser, readStoredUser, writeStoredUser } from './domains/auth/auth'
 import type { LoginRequest } from './domains/auth/auth'
 import { AuthProvider } from './domains/auth/AuthContext'
 import { LoginPage } from './domains/auth/pages/LoginPage'
@@ -28,12 +28,17 @@ function App() {
     setUser(nextUser)
   }
 
+  function handleLogout() {
+    clearStoredUser()
+    setUser(null)
+  }
+
   return (
     <BrowserRouter>
       {!user ? (
         <LoginPage onLogin={handleLogin} />
       ) : (
-        <AuthProvider user={user}>
+        <AuthProvider user={user} onLogout={handleLogout}>
           <Routes>
             <Route element={<AppShell />}>
               <Route index element={<Navigate to="/dashboard" replace />} />

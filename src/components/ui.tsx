@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { Children, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { uiTokens } from '../design/tokens'
 import type { InputStatus, LearningStatus, ProductStatus, ReviewDecision, RiskLevel } from '../types'
@@ -283,9 +283,10 @@ export function DataTable({
   onSortChange,
   className = '',
   tableContainerClassName = '',
+  emptyMessage = '표시할 데이터가 없습니다.',
 }: {
   headers: DataTableHeader[]
-  children: ReactNode
+  children?: ReactNode
   header?: DataTableSectionHeader
   filters?: ReactNode
   pagination?: DataTablePagination
@@ -294,10 +295,12 @@ export function DataTable({
   onSortChange?: (sortKey: string | null, sortDirection: DataTableSortDirection) => void
   className?: string
   tableContainerClassName?: string
+  emptyMessage?: ReactNode
 }) {
   const pageNumbers = pagination ? Array.from({ length: pagination.totalPages }, (_, index) => index + 1) : []
   const startItem = pagination && pagination.totalItems > 0 ? (pagination.currentPage - 1) * pagination.pageSize + 1 : 0
   const endItem = pagination ? Math.min(pagination.currentPage * pagination.pageSize, pagination.totalItems) : 0
+  const hasRows = Children.toArray(children).length > 0
 
   return (
     <div className={className}>
@@ -347,7 +350,15 @@ export function DataTable({
               })}
             </tr>
           </thead>
-          <tbody className={`divide-y divide-slate-100 ${uiTokens.color.bodyText}`}>{children}</tbody>
+          <tbody className={`divide-y divide-slate-100 ${uiTokens.color.bodyText}`}>
+            {hasRows ? children : (
+              <tr>
+                <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={headers.length}>
+                  {emptyMessage}
+                </td>
+              </tr>
+            )}
+          </tbody>
         </table>
       </div>
       {pagination && (

@@ -3,13 +3,14 @@ import type { AuthUser } from './auth'
 
 type AuthContextValue = {
   user: AuthUser
+  logout: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-export function AuthProvider({ user, children }: { user: AuthUser; children: ReactNode }) {
+export function AuthProvider({ user, onLogout, children }: { user: AuthUser; onLogout: () => void; children: ReactNode }) {
   return (
-    <AuthContext.Provider value={{ user }}>
+    <AuthContext.Provider value={{ user, logout: onLogout }}>
       {children}
     </AuthContext.Provider>
   )

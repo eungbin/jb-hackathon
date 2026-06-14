@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Bell, BookOpen, ClipboardCheck, Database, FileArchive, GraduationCap, Home, PlusCircle, Search, Settings, ShieldCheck } from 'lucide-react'
+import { Bell, BookOpen, ClipboardCheck, Database, FileArchive, GraduationCap, Home, LogOut, PlusCircle, Search, Settings, ShieldCheck } from 'lucide-react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../domains/auth/AuthContext'
 import { uiTokens } from '../../design/tokens'
@@ -16,7 +16,7 @@ const navItems: Array<{ label: string; path?: string; icon: ComponentType<{ size
 ]
 
 export function AppShell() {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
 
   return (
     <div className={`min-h-screen ${uiTokens.color.page} ${uiTokens.color.headingText}`}>
@@ -77,6 +77,14 @@ export function AppShell() {
             <div className="flex items-center gap-3">
               <button className={`${uiTokens.radius.compact} border ${uiTokens.color.border} ${uiTokens.color.surface} p-2 ${uiTokens.color.mutedText}`} aria-label="알림">
                 <Bell size={18} />
+              </button>
+              <button
+                className={`flex h-10 items-center gap-2 whitespace-nowrap ${uiTokens.radius.compact} border ${uiTokens.color.border} ${uiTokens.color.surface} px-3 text-sm font-semibold ${uiTokens.color.mutedText} transition hover:text-slate-950`}
+                type="button"
+                onClick={logout}
+              >
+                <LogOut size={16} />
+                로그아웃
               </button>
               <div className="hidden text-right sm:block">
                 <p className={uiTokens.typography.label}>{user.userName}</p>

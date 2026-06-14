@@ -160,7 +160,6 @@ const productCreateForm = (): ProductCreateForm => ({
       condition: '급여이체 고객 한정',
       sourceDocumentId: 'DOC-001',
       sourceLocator: '1페이지 3번째 줄',
-      effectiveStartDate: '2024.07.01',
       inputStatus: 'COMPLETE',
     },
   ],

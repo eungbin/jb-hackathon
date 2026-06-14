@@ -1,7 +1,9 @@
-import type { InputStatus, ProductDocumentType, ProductFact, ProductFactType, SourceDocument } from '../../../types'
+import type { InputStatus, ProductDocumentType, ProductFact, SourceDocument } from '../../../types'
 import { documentTypeLabels } from '../../../utils/labels'
 import type { ProductAiAnalyzeResponse } from '../api'
 import type { ProductCreateForm } from './productCreateValidation'
+
+export const productGroupOptions = ['예금', '적금', '대출'] as const
 
 export const statusFromDocument = (document: SourceDocument): InputStatus =>
   document.documentType ? 'COMPLETE' : 'MISSING_REQUIRED'
@@ -48,17 +50,26 @@ export const emptyFact = (form: ProductCreateForm): ProductFact => ({
   documentVersion: '',
   page: '',
   section: '',
-  effectiveStartDate: form.effectiveStartDate,
-  effectiveEndDate: '',
   sourceMemo: '',
   inputStatus: 'MISSING_REQUIRED',
 })
 
 const documentTypeOptions: ProductDocumentType[] = ['PRODUCT_DESCRIPTION', 'TERMS', 'RATE_TABLE', 'FEE_TABLE', 'DISCLOSURE_GUIDE', 'OTHER']
-const factTypeOptions: ProductFactType[] = ['RATE', 'ELIGIBILITY', 'LIMIT', 'FEE', 'TERM', 'BENEFIT', 'RISK_NOTICE', 'CHANNEL', 'OTHER']
 
 function valueOrCurrent(nextValue: string | null | undefined, currentValue: string) {
   return nextValue?.trim() || currentValue
+}
+
+function productGroupOrCurrent(nextValue: string | null | undefined, currentValue: string) {
+  const nextProductGroup = nextValue?.trim()
+
+  if (!nextProductGroup) {
+    return currentValue
+  }
+
+  return productGroupOptions.includes(nextProductGroup as (typeof productGroupOptions)[number])
+    ? nextProductGroup
+    : currentValue
 }
 
 function toDocumentType(value: string | null | undefined): ProductDocumentType | '' {
@@ -71,10 +82,6 @@ function toDocumentType(value: string | null | undefined): ProductDocumentType |
   }
 
   return documentTypeOptions.find((type) => documentTypeLabels[type] === value) ?? ''
-}
-
-function toFactType(value: string | null | undefined): ProductFactType | '' {
-  return factTypeOptions.includes(value as ProductFactType) ? value as ProductFactType : ''
 }
 
 function findAnalysisFile(result: ProductAiAnalyzeResponse, fileIndex: number) {
@@ -111,7 +118,7 @@ export function applyProductAiAnalysisResult(
     return (analysisFile?.facts ?? []).map((fact, factIndex): ProductFact => {
       const nextFact: ProductFact = {
         factId: `PF-${String(productFactsCountBefore(result, fileIndex) + factIndex + 1).padStart(3, '0')}`,
-        factType: toFactType(fact.factType),
+        factType: fact.factType ?? '',
         factName: fact.factTitle ?? '',
         productName: valueOrCurrent(result.productName, form.productName),
         productCode: valueOrCurrent(result.productCode, form.productCode),
@@ -126,8 +133,6 @@ export function applyProductAiAnalysisResult(
         documentVersion: document?.version ?? '',
         page: fact.factPageLocation ?? '',
         section: fact.factSection ?? '',
-        effectiveStartDate: form.effectiveStartDate,
-        effectiveEndDate: form.effectiveEndDate,
         sourceMemo: fact.factNote ?? '',
         inputStatus: 'MISSING_REQUIRED',
       }
@@ -143,8 +148,8 @@ export function applyProductAiAnalysisResult(
     ...form,
     productName: valueOrCurrent(result.productName, form.productName),
     productCode: valueOrCurrent(result.productCode, form.productCode),
-    category: valueOrCurrent(result.productCategory, form.category),
-    subCategory: valueOrCurrent(result.productCategory, form.subCategory),
+    category: productGroupOrCurrent(result.productCategory, form.category),
+    subCategory: productGroupOrCurrent(result.productCategory, form.subCategory),
     description: valueOrCurrent(result.productIntroduce, form.description),
     sourceDocuments,
     productFacts,

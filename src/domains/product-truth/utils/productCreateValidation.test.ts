@@ -35,7 +35,6 @@ const validForm = (): ProductCreateForm => ({
       unit: '%',
       sourceDocumentId: 'DOC-001',
       sourceLocator: '상품설명서 p.3',
-      effectiveStartDate: '2026.06.01',
       inputStatus: 'COMPLETE',
     },
   ],
@@ -55,7 +54,7 @@ describe('validateProductCreate', () => {
     expect(result.ok).toBe(false)
     expect(result.errors).toContain('상품명을 입력해 주세요.')
     expect(result.errors).toContain('상품 코드를 입력해 주세요.')
-    expect(result.errors).toContain('상품 카테고리를 입력해 주세요.')
+    expect(result.errors).toContain('상품군을 선택해 주세요.')
     expect(result.errors).toContain('상품 설명을 입력해 주세요.')
   })
 

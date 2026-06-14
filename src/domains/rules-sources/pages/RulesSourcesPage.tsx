@@ -202,7 +202,7 @@ export function RulesSourcesPage() {
           </form>
         }
         header={{ title: 'Rule Registry' }}
-        headers={['Rule ID', '규칙명', '탐지 키워드 및 필수 고지 (Rules)', '액션']}
+        headers={['Rule ID', '규칙명', '위험등급', '탐지 키워드 및 필수 고지 (Rules)', '액션']}
         pagination={{
           currentPage: visiblePage,
           itemLabel: 'Rule',
@@ -217,6 +217,8 @@ export function RulesSourcesPage() {
             <td className={`${uiTokens.spacing.tableCellRelaxed} font-mono text-xs`}>{rule.ruleUniqueId}</td>
             <td className={uiTokens.spacing.tableCellRelaxed}>
               <p className={`font-semibold ${uiTokens.color.headingText}`}>{rule.name}</p>
+            </td>
+            <td className={uiTokens.spacing.tableCellRelaxed}>
               {rule.severity ? <RiskBadge level={rule.severity} /> : <Badge>미지정</Badge>}
             </td>
             <td className={uiTokens.spacing.tableCellRelaxed}>
@@ -230,7 +232,7 @@ export function RulesSourcesPage() {
         ))}
         {paginatedRules.length === 0 && (
           <tr>
-            <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={4}>
+            <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={5}>
               표시할 심의 규칙이 없습니다.
             </td>
           </tr>

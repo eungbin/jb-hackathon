@@ -34,17 +34,6 @@ export type ProductDocumentType =
   | 'DISCLOSURE_GUIDE'
   | 'OTHER'
 
-export type ProductFactType =
-  | 'RATE'
-  | 'ELIGIBILITY'
-  | 'LIMIT'
-  | 'FEE'
-  | 'TERM'
-  | 'BENEFIT'
-  | 'RISK_NOTICE'
-  | 'CHANNEL'
-  | 'OTHER'
-
 export type InputStatus = 'COMPLETE' | 'MISSING_REQUIRED'
 
 export type SourceDocument = {
@@ -60,7 +49,7 @@ export type SourceDocument = {
 
 export type ProductFact = {
   factId: string
-  factType: ProductFactType | ''
+  factType: string
   factName: string
   productName?: string
   productCode?: string
@@ -75,8 +64,6 @@ export type ProductFact = {
   documentVersion?: string
   page?: string
   section?: string
-  effectiveStartDate: string
-  effectiveEndDate?: string
   sourceMemo?: string
   inputStatus: InputStatus
 }
