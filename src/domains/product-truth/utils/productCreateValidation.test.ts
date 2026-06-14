@@ -32,7 +32,6 @@ const validForm = (): ProductCreateForm => ({
       factType: 'RATE',
       factName: '최고 금리',
       value: '7.0',
-      unit: '%',
       sourceDocumentId: 'DOC-001',
       sourceLocator: '상품설명서 p.3',
       inputStatus: 'COMPLETE',

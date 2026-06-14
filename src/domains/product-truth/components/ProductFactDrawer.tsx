@@ -74,7 +74,6 @@ export function ProductFactDrawer({ factDraft, factIndex, sourceDocuments, onCha
             <h3 className={`border-b ${uiTokens.color.borderStrong} pb-2 ${uiTokens.typography.label} ${uiTokens.color.mutedText}`}>2. 값 / 조건</h3>
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Value*" value={factDraft.value} onChange={(value) => onChange({ ...factDraft, value })} />
-              <Field label="Unit*" value={factDraft.unit} onChange={(value) => onChange({ ...factDraft, unit: value })} />
               <div className="md:col-span-2">
                 <Field label="표시값" value={factDraft.displayValue ?? ''} onChange={(value) => onChange({ ...factDraft, displayValue: value })} />
               </div>

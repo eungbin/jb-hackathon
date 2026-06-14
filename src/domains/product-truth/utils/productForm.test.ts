@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyProductAiAnalysisResult, createInitialProductForm, emptyFact } from './productForm'
+import { applyProductAiAnalysisResult, createInitialProductForm, emptyFact, statusFromFact } from './productForm'
 import type { ProductAiAnalyzeResponse } from '../api'
 
 describe('createInitialProductForm', () => {
@@ -29,6 +29,28 @@ describe('emptyFact', () => {
     expect(fact).not.toHaveProperty('effectiveStartDate')
     expect(fact).not.toHaveProperty('effectiveEndDate')
   })
+
+  it('does not add a separate Product Fact unit field', () => {
+    const form = createInitialProductForm()
+
+    const fact = emptyFact(form)
+
+    expect(fact).not.toHaveProperty('unit')
+  })
+})
+
+describe('statusFromFact', () => {
+  it('does not require a separate unit value', () => {
+    expect(statusFromFact({
+      factId: 'PF-001',
+      factType: 'RATE',
+      factName: 'Base rate',
+      value: '3.5%',
+      sourceDocumentId: 'DOC-001',
+      sourceLocator: 'page 1',
+      inputStatus: 'MISSING_REQUIRED',
+    })).toBe('COMPLETE')
+  })
 })
 
 describe('applyProductAiAnalysisResult', () => {
@@ -53,7 +75,7 @@ describe('applyProductAiAnalysisResult', () => {
               factValue: '3.5',
               factUnit: '%',
               factCondition: '급여이체 고객 한정',
-              factFileLocation: '1페이지 3번째 줄',
+              factFileLocation: 'line 9',
               factPageLocation: '1페이지',
               factSection: '제1조',
               factNote: null,
@@ -86,14 +108,15 @@ describe('applyProductAiAnalysisResult', () => {
       factType: 'RATE',
       factName: '기본금리',
       value: '3.5',
-      unit: '%',
+      displayValue: '3.5',
       condition: '급여이체 고객 한정',
       sourceDocumentId: 'DOC-001',
-      sourceLocator: '1페이지 3번째 줄',
+      sourceLocator: '1페이지 line 9',
       page: '1페이지',
       section: '제1조',
       inputStatus: 'COMPLETE',
     })
+    expect(nextForm.productFacts[0]).not.toHaveProperty('unit')
     expect(nextForm.productFacts[0]).not.toHaveProperty('effectiveStartDate')
     expect(nextForm.productFacts[0]).not.toHaveProperty('effectiveEndDate')
   })

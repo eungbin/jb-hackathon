@@ -58,7 +58,6 @@ export type ProductCreateRequest = {
       factType: string | null
       factTitle: string | null
       factValue: string | null
-      factUnit: string | null
       factCondition: string | null
       factFileLocation: string | null
     }>
@@ -217,7 +216,7 @@ function buildValueData(fact: ProductListResponse[number]['facts'][number]) {
 }
 
 function buildSourceLocator(fact: ProductListResponse[number]['facts'][number]) {
-  return [fact.factPageLocation, fact.factSection, fact.factFileLocation].filter(Boolean).join(' / ') || '-'
+  return [fact.factPageLocation, fact.factFileLocation].filter(Boolean).join(' ') || '-'
 }
 
 function buildSourceFile(fact: ProductListResponse[number]['facts'][number]) {
@@ -242,7 +241,6 @@ function buildProductCreateRequest(form: ProductCreateForm, files: File[], userI
           factType: fact.factType || null,
           factTitle: fact.factName || null,
           factValue: fact.value || null,
-          factUnit: fact.unit || null,
           factCondition: fact.condition?.trim() || null,
           factFileLocation: fact.sourceLocator || null,
         })),

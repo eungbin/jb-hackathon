@@ -55,7 +55,6 @@ export type ProductFact = {
   productCode?: string
   productTruthVersion?: string
   value: string
-  unit: string
   displayValue?: string
   condition?: string
   sourceDocumentId: string

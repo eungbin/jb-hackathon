@@ -75,6 +75,13 @@ describe('ProductTruthCreatePage API integration', () => {
     expect(source).not.toContain('factTypeLabels[fact.factType]')
   })
 
+  it('does not show a separate Product Fact unit column', () => {
+    const source = pageSources['./ProductTruthCreatePage.tsx']
+
+    expect(source).not.toContain("'UNIT'")
+    expect(source).not.toContain('fact.unit')
+  })
+
   it('limits Product Fact rows to five per page', () => {
     const source = pageSources['./ProductTruthCreatePage.tsx']
 

@@ -9,7 +9,7 @@ export const statusFromDocument = (document: SourceDocument): InputStatus =>
   document.documentType ? 'COMPLETE' : 'MISSING_REQUIRED'
 
 export const statusFromFact = (fact: ProductFact): InputStatus =>
-  fact.factType && fact.factName && fact.value && fact.unit && fact.sourceDocumentId && fact.sourceLocator
+  fact.factType && fact.factName && fact.value && fact.sourceDocumentId && fact.sourceLocator
     ? 'COMPLETE'
     : 'MISSING_REQUIRED'
 
@@ -41,7 +41,6 @@ export const emptyFact = (form: ProductCreateForm): ProductFact => ({
   productCode: form.productCode,
   productTruthVersion: form.versionLabel,
   value: '',
-  unit: '',
   displayValue: '',
   condition: '',
   sourceDocumentId: form.sourceDocuments[0]?.documentId ?? '',
@@ -88,6 +87,10 @@ function findAnalysisFile(result: ProductAiAnalyzeResponse, fileIndex: number) {
   return result.files?.find((file) => file.fileIndex === fileIndex) ?? null
 }
 
+function buildSourceLocator(pageLocation: string | null | undefined, fileLocation: string | null | undefined) {
+  return [pageLocation, fileLocation].filter(Boolean).join(' ')
+}
+
 export function applyProductAiAnalysisResult(
   form: ProductCreateForm,
   files: File[],
@@ -124,11 +127,10 @@ export function applyProductAiAnalysisResult(
         productCode: valueOrCurrent(result.productCode, form.productCode),
         productTruthVersion: form.versionLabel,
         value: fact.factValue ?? '',
-        unit: fact.factUnit ?? '',
-        displayValue: [fact.factValue, fact.factUnit].filter(Boolean).join(''),
+        displayValue: fact.factValue ?? '',
         condition: fact.factCondition ?? '',
         sourceDocumentId: document?.documentId ?? '',
-        sourceLocator: fact.factFileLocation ?? '',
+        sourceLocator: buildSourceLocator(fact.factPageLocation, fact.factFileLocation),
         documentType: document?.documentType ?? '',
         documentVersion: document?.version ?? '',
         page: fact.factPageLocation ?? '',

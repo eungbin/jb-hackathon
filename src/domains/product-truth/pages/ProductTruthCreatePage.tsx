@@ -301,7 +301,7 @@ export function ProductTruthCreatePage() {
             </Button>
           </div>
           <DataTable
-            headers={['FACT TYPE', 'PRODUCT FACT', 'VALUE', 'UNIT', 'CONDITION', 'SOURCE LOCATOR', 'STATUS', 'ACTION']}
+            headers={['FACT TYPE', 'PRODUCT FACT', 'VALUE', 'CONDITION', 'SOURCE LOCATOR', 'STATUS', 'ACTION']}
             pagination={{
               currentPage: visibleProductFactPage,
               itemLabel: 'Product Fact',
@@ -319,7 +319,6 @@ export function ProductTruthCreatePage() {
                   <td className={uiTokens.spacing.tableCell}>{fact.factType || '-'}</td>
                   <td className={`${uiTokens.spacing.tableCell} font-semibold ${uiTokens.color.headingText}`}>{fact.factName}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.value}</td>
-                  <td className={uiTokens.spacing.tableCell}>{fact.unit}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.condition || '-'}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.sourceLocator || '-'}</td>
                   <td className={`${uiTokens.spacing.tableCell} whitespace-nowrap`}>

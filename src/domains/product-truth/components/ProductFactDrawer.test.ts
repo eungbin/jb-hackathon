@@ -25,6 +25,13 @@ describe('ProductFactDrawer', () => {
     expect(source).not.toContain('적용 종료일')
   })
 
+  it('does not expose a separate unit field', () => {
+    const source = componentSources['./ProductFactDrawer.tsx']
+
+    expect(source).not.toContain('label="Unit*"')
+    expect(source).not.toContain('factDraft.unit')
+  })
+
   it('uses raw factType values as select labels', () => {
     const source = componentSources['./ProductFactDrawer.tsx']
 
