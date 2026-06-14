@@ -189,7 +189,7 @@ describe('normalizeEvidencePackResultDetailResponse', () => {
       registeredAt: '2024.07.20 14:30',
       registrantName: '홍길동',
       aiReviewedAt: '2024.07.20 14:35',
-      approvedAt: '-',
+      approvedAt: '거절됨',
       approverName: '김준법',
       product: {
         productName: 'JB 첫 적금',

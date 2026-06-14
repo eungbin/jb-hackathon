@@ -47,6 +47,18 @@ describe('table filter behavior', () => {
     expect(source).not.toContain('확정 시각')
   })
 
+  it('renders Evidence Pack learning status as an action button', () => {
+    const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
+
+    expect(source).toContain('function EvidenceLearningAction')
+    expect(source).toContain("if (status === 'PENDING')")
+    expect(source).toContain('적재하기')
+    expect(source).toContain('승인됨')
+    expect(source).toContain('거절됨')
+    expect(source).toContain('<EvidenceLearningAction status={pack.learningStatus} />')
+    expect(source).not.toContain('EvidenceLearningBadge')
+  })
+
   it('links Evidence Pack detail with compliance id for the detail API', () => {
     const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
 

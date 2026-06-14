@@ -279,6 +279,14 @@ function formatIsoDateTime(value: string | null | undefined) {
   return time ? `${date} ${time}` : date
 }
 
+function formatReviewProcessedAt(value: string | null | undefined, status: EvidencePackComplianceStatus | null | undefined) {
+  if (value) {
+    return formatIsoDateTime(value)
+  }
+
+  return status === 'REJECTED' ? '거절됨' : '-'
+}
+
 function toChannelCode(channel: string) {
   const channelCodes: Record<string, string> = {
     앱푸시: 'APP_PUSH',
@@ -351,7 +359,7 @@ export function normalizeEvidencePackResultDetailResponse(response: EvidencePack
     registeredAt: formatIsoDateTime(response.comRegistAt),
     registrantName: response.registrantName,
     aiReviewedAt: formatIsoDateTime(response.comAiReviewedAt),
-    approvedAt: formatIsoDateTime(response.comApprovedAt),
+    approvedAt: formatReviewProcessedAt(response.comApprovedAt, firstClaim?.comStatus),
     approverName: display(response.approverName),
     product: response.product,
     claimResults: response.claims.map((claim, index) => ({

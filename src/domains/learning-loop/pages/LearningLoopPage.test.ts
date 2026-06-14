@@ -38,13 +38,24 @@ describe('LearningLoopPage candidate details', () => {
     expect(source).toContain('loadStatus')
     expect(source).toContain('loadStatusLabels')
     expect(source).toContain("{ label: '적재 상태', sortKey: 'loadStatus' }")
-    expect(source).toContain('승인')
-    expect(source).toContain('거절')
-    expect(source).toContain('대기')
+    expect(source).toContain('승인됨')
+    expect(source).toContain('거절됨')
+    expect(source).toContain('대기중')
     expect(source).not.toContain('datasetType')
     expect(source).not.toContain('Dataset Type')
     expect(source).not.toContain('labelStatus')
     expect(source).not.toContain('Label Status')
+  })
+
+  it('colors approved and rejected load statuses', () => {
+    const source = pageSources['./LearningLoopPage.tsx']
+
+    expect(source).toContain('function LearningLoadStatusText')
+    expect(source).toContain("status === 'APPROVED'")
+    expect(source).toContain('uiTokens.color.success')
+    expect(source).toContain("status === 'REJECTED'")
+    expect(source).toContain('uiTokens.color.danger')
+    expect(source).toContain('<LearningLoadStatusText status={candidate.loadStatus} />')
   })
 
   it('does not expose redaction status for loadable documents', () => {

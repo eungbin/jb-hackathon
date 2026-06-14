@@ -20,9 +20,9 @@ const initialFilters: LearningFilters = {
 }
 
 const loadStatusLabels = {
-  APPROVED: '승인',
-  REJECTED: '거절',
-  PENDING: '대기',
+  APPROVED: '승인됨',
+  REJECTED: '거절됨',
+  PENDING: '대기중',
 } as const
 
 const learningTableHeaders = [
@@ -32,6 +32,16 @@ const learningTableHeaders = [
   { label: '적재 상태', sortKey: 'loadStatus' },
   { label: '액션', sortable: false },
 ]
+
+function LearningLoadStatusText({ status }: { status: LearningLoopRow['loadStatus'] }) {
+  const colorClass = status === 'APPROVED'
+    ? uiTokens.color.success
+    : status === 'REJECTED'
+      ? uiTokens.color.danger
+      : uiTokens.color.bodyText
+
+  return <span className={`font-semibold ${colorClass}`}>{loadStatusLabels[status]}</span>
+}
 
 export function LearningLoopPage() {
   const [items, setItems] = useState<LearningLoopRow[]>([])
@@ -195,7 +205,9 @@ export function LearningLoopPage() {
                 {candidate.productTitle}
               </Link>
             </td>
-            <td className={uiTokens.spacing.tableCellRelaxed}>{loadStatusLabels[candidate.loadStatus]}</td>
+            <td className={uiTokens.spacing.tableCellRelaxed}>
+              <LearningLoadStatusText status={candidate.loadStatus} />
+            </td>
             <td className={uiTokens.spacing.tableCellRelaxed}>
               <Button variant="secondary" onClick={() => openCandidateDetails(candidate.candidateId)}>상세보기</Button>
             </td>

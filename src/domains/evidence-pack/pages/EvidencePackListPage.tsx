@@ -67,28 +67,30 @@ const complianceStatusTones: Record<EvidencePackComplianceStatus, 'blue' | 'gree
   APPROVED: 'green',
 }
 
-const learningStatusLabels: Record<Exclude<EvidencePackLearningStatus, null>, string> = {
-  PENDING: '러닝루프 대기',
-  REJECT: '러닝루프 거절',
-  APPROVED: '러닝루프 승인',
-}
-
-const learningStatusTones: Record<Exclude<EvidencePackLearningStatus, null>, 'green' | 'orange' | 'red'> = {
-  PENDING: 'orange',
-  REJECT: 'red',
-  APPROVED: 'green',
+const learningFilterLabels: Record<Exclude<EvidencePackLearningStatus, null>, string> = {
+  PENDING: '대기중',
+  REJECT: '거절됨',
+  APPROVED: '승인됨',
 }
 
 function ComplianceStatusBadge({ status }: { status: EvidencePackComplianceStatus }) {
   return <Badge tone={complianceStatusTones[status]}>{complianceStatusLabels[status]}</Badge>
 }
 
-function EvidenceLearningBadge({ status }: { status: EvidencePackLearningStatus }) {
+function EvidenceLearningAction({ status }: { status: EvidencePackLearningStatus }) {
   if (!status) {
-    return <Badge tone="gray">러닝루프 미생성</Badge>
+    return <Button variant="secondary" className="h-8 min-w-[76px] px-3 text-xs" disabled>미생성</Button>
   }
 
-  return <Badge tone={learningStatusTones[status]}>{learningStatusLabels[status]}</Badge>
+  if (status === 'PENDING') {
+    return <Button className="h-8 min-w-[76px] px-3 text-xs">적재하기</Button>
+  }
+
+  return (
+    <Button variant="secondary" className="h-8 min-w-[76px] px-3 text-xs" disabled>
+      {status === 'APPROVED' ? '승인됨' : '거절됨'}
+    </Button>
+  )
 }
 
 function NullableRiskBadge({ level }: { level: RiskLevel | null }) {
@@ -200,7 +202,7 @@ export function EvidencePackListPage() {
             <SelectField label="심사 상태" value={filters.status} onChange={(value) => setFilter('status', value)} options={[{ value: 'ALL', label: '전체' }, ...statusOptions.map((status) => ({ value: status, label: complianceStatusLabels[status] }))]} />
             <SelectField label="최고 위험등급" value={filters.risk} onChange={(value) => setFilter('risk', value)} options={[{ value: 'ALL', label: '전체' }, ...riskOptions.map((risk) => ({ value: risk, label: risk })), { value: 'NONE', label: '미정' }]} />
             <Field label="심사 시각" value={filters.finalizedAt} onChange={(value) => setFilter('finalizedAt', value)} />
-            <SelectField label="Learning Loop 상태" value={filters.learning} onChange={(value) => setFilter('learning', value)} options={[{ value: 'ALL', label: '전체' }, { value: 'PENDING', label: '러닝루프 대기' }, { value: 'APPROVED', label: '러닝루프 승인' }, { value: 'REJECT', label: '러닝루프 거절' }, { value: 'NONE', label: '미생성' }]} />
+            <SelectField label="Learning Loop 상태" value={filters.learning} onChange={(value) => setFilter('learning', value)} options={[{ value: 'ALL', label: '전체' }, { value: 'PENDING', label: learningFilterLabels.PENDING }, { value: 'APPROVED', label: learningFilterLabels.APPROVED }, { value: 'REJECT', label: learningFilterLabels.REJECT }, { value: 'NONE', label: '미생성' }]} />
             <div className="flex items-end gap-2 xl:justify-end">
               <Button variant="secondary" className="min-w-24" type="button" onClick={resetFilters}>초기화</Button>
               <Button className="min-w-24" type="submit">조회</Button>
@@ -239,7 +241,7 @@ export function EvidencePackListPage() {
             <td className={uiTokens.spacing.tableCell}>{pack.finalizedAt}</td>
             <td className={uiTokens.spacing.tableCell}>{pack.reviewer}</td>
             <td className={uiTokens.spacing.tableCell}>
-              <EvidenceLearningBadge status={pack.learningStatus} />
+              <EvidenceLearningAction status={pack.learningStatus} />
             </td>
             <td className={uiTokens.spacing.tableCell}>
               <Link to={`/evidence-pack/${pack.comId}`}>
