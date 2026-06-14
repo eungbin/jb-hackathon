@@ -3,12 +3,10 @@ import {
   AlertTriangle,
   BookOpen,
   Building2,
-  CheckCircle2,
   ChevronRight,
   Download,
   FileText,
   Info,
-  PanelRightOpen,
   Save,
   ShieldCheck,
 } from 'lucide-react'
@@ -16,7 +14,7 @@ import { Button, DataTable, Drawer, PageHeader } from '../../../components/ui'
 import type { DataTableSortDirection } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import type { RiskLevel } from '../../../types'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { fetchComplianceReviewDetail, processComplianceReview } from '../api'
 import type { ComplianceReviewClaim, ComplianceReviewDetail, ComplianceReviewEvidenceSource } from '../api'
@@ -26,10 +24,11 @@ import type { Decision } from '../reviewDecision'
 
 type ClaimRow = ComplianceReviewClaim
 
-type ClaimSortKey = 'statement' | 'type' | 'verificationResult' | 'riskLevel'
+type ClaimSortKey = 'statement' | 'reviewItem' | 'type' | 'verificationResult' | 'riskLevel'
 
 const claimTableHeaders = [
   { label: 'Claim 문구', sortKey: 'statement' },
+  { label: 'AI 판단', sortKey: 'reviewItem' },
   { label: '유형', sortKey: 'type' },
   { label: 'AI 검증결과', sortKey: 'verificationResult' },
   { label: '위험등급', sortKey: 'riskLevel' },
@@ -139,6 +138,8 @@ const EvidenceSourceList = memo(function EvidenceSourceList({ sources }: { sourc
 })
 
 const ClaimsTable = memo(function ClaimsTable({ claims, onOpenEvidence }: { claims: ClaimRow[]; onOpenEvidence: (claimId: string) => void }) {
+  const claimPageSize = 5
+  const [currentClaimPage, setCurrentClaimPage] = useState(1)
   const [sortKey, setSortKey] = useState<ClaimSortKey | null>(null)
   const [sortDirection, setSortDirection] = useState<DataTableSortDirection>(null)
   const sortedClaims = useMemo(() => {
@@ -156,6 +157,9 @@ const ClaimsTable = memo(function ClaimsTable({ claims, onOpenEvidence }: { clai
       return firstClaim[sortKey].localeCompare(secondClaim[sortKey], 'ko') * directionMultiplier
     })
   }, [claims, sortDirection, sortKey])
+  const claimTotalPages = Math.max(1, Math.ceil(sortedClaims.length / claimPageSize))
+  const visibleClaimPage = Math.min(currentClaimPage, claimTotalPages)
+  const paginatedClaims = sortedClaims.slice((visibleClaimPage - 1) * claimPageSize, visibleClaimPage * claimPageSize)
 
   return (
     <SurfaceCard className="overflow-hidden">
@@ -175,12 +179,12 @@ const ClaimsTable = memo(function ClaimsTable({ claims, onOpenEvidence }: { clai
         }}
         headers={claimTableHeaders}
         pagination={{
-          currentPage: 1,
+          currentPage: visibleClaimPage,
           itemLabel: 'Claim',
-          onPageChange: () => undefined,
-          pageSize: sortedClaims.length || 1,
+          onPageChange: setCurrentClaimPage,
+          pageSize: claimPageSize,
           totalItems: sortedClaims.length,
-          totalPages: 1,
+          totalPages: claimTotalPages,
         }}
         sortDirection={sortDirection}
         sortKey={sortKey}
@@ -189,29 +193,28 @@ const ClaimsTable = memo(function ClaimsTable({ claims, onOpenEvidence }: { clai
           setSortDirection(nextSortDirection)
         }}
       >
-        {sortedClaims.map((claim) => (
+        {paginatedClaims.map((claim) => (
           <tr key={claim.claimId} className="transition-colors hover:bg-slate-50">
             <td className="min-w-[210px] px-5 py-4">
+              <span className={`text-xs font-bold ${uiTokens.color.headingText}`}>{claim.statement}</span>
+            </td>
+            <td className="min-w-[150px] px-3 py-4">
               <span className={`flex items-center gap-2 text-xs font-bold ${uiTokens.color.headingText}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${claim.riskLevel === 'CRITICAL' ? 'bg-rose-600' : claim.riskLevel === 'HIGH' ? 'bg-orange-500' : claim.riskLevel ? 'bg-blue-600' : 'bg-slate-300'}`} />
-                {claim.statement}
+                <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${claim.riskLevel === 'CRITICAL' ? 'bg-rose-600' : claim.riskLevel === 'HIGH' ? 'bg-orange-500' : claim.riskLevel ? 'bg-blue-600' : 'bg-slate-300'}`} />
+                {claim.reviewItem}
               </span>
             </td>
-            <td className="px-3 py-4">
+            <td className="min-w-[112px] px-3 py-4">
               <TypePill label={claim.type} />
             </td>
-            <td className="px-3 py-4">
-              <span className={`inline-flex items-center gap-1.5 text-xs font-bold ${uiTokens.color.headingText}`}>
-                {claim.riskLevel === 'CRITICAL' ? <AlertTriangle size={14} className={uiTokens.color.danger} /> : <CheckCircle2 size={14} className={uiTokens.color.primary} />}
-                {claim.verificationResult}
-              </span>
+            <td className="min-w-[124px] px-3 py-4">
+              <TypePill label={claim.verificationResult} />
             </td>
-            <td className="px-3 py-4">
+            <td className="min-w-[104px] px-3 py-4">
               <RiskPill level={claim.riskLevel} label={claim.riskLabel} />
             </td>
-            <td className="px-5 py-4">
+            <td className="min-w-[124px] px-5 py-4">
               <Button className="h-8 rounded-md px-3 text-xs" onClick={() => onOpenEvidence(claim.claimId)}>
-                <PanelRightOpen size={14} />
                 근거 확인
               </Button>
             </td>
@@ -219,7 +222,7 @@ const ClaimsTable = memo(function ClaimsTable({ claims, onOpenEvidence }: { clai
         ))}
         {sortedClaims.length === 0 && (
           <tr>
-            <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={5}>
+            <td className={`px-5 py-10 text-center ${uiTokens.typography.body} ${uiTokens.color.mutedText}`} colSpan={6}>
               표시할 클레임이 없습니다.
             </td>
           </tr>
@@ -380,7 +383,7 @@ const EvidenceDrawer = memo(function EvidenceDrawer({
           </div>
         </div>
 
-        <DrawerSection title="상품 기준정보" icon={<ShieldCheck size={16} className={uiTokens.color.primary} />}>
+        <DrawerSection title="참고 상품문서" icon={<ShieldCheck size={16} className={uiTokens.color.primary} />}>
           <dl className="grid gap-3 text-xs">
             {Object.entries(claim.evidence.productTruth).map(([label, value]) => (
               <div key={label} className="flex justify-between gap-4">
@@ -393,29 +396,35 @@ const EvidenceDrawer = memo(function EvidenceDrawer({
 
         <DrawerSection title="규칙&근거 문서" icon={<BookOpen size={16} className={uiTokens.color.primary} />}>
           <div className="grid gap-4 text-xs">
-            <div>
-              <p className={uiTokens.color.mutedText}>규칙 ID</p>
-              <p className={`mt-1 font-mono font-bold ${uiTokens.color.headingText}`}>{claim.evidence.rule.ruleId}</p>
-            </div>
-            <div>
-              <p className={uiTokens.color.mutedText}>필수 고지 항목</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {claim.evidence.rule.requiredItems.map((item) => (
-                  <span key={item} className={`${uiTokens.radius.chip} ${uiTokens.color.infoSurface} px-2 py-1 font-bold ${uiTokens.color.info}`}>
-                    {item}
-                  </span>
-                ))}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className={uiTokens.color.mutedText}>규칙 ID</p>
+                <p className={`mt-1 font-mono font-bold ${uiTokens.color.headingText}`}>{claim.evidence.rule.ruleId}</p>
+              </div>
+              <div>
+                <p className={uiTokens.color.mutedText}>규칙 이름</p>
+                <p className={`mt-1 font-bold ${uiTokens.color.headingText}`}>{claim.evidence.rule.ruleName}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className={uiTokens.color.mutedText}>중요도</p>
-                <p className={`mt-1 font-bold ${uiTokens.color.danger}`}>{claim.evidence.rule.severity}</p>
+                <p className={uiTokens.color.mutedText}>필수 고지 항목</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {claim.evidence.rule.requiredItems.map((item) => (
+                    <span key={item} className={`${uiTokens.radius.chip} ${uiTokens.color.infoSurface} px-2 py-1 font-bold ${uiTokens.color.info}`}>
+                      {item}
+                    </span>
+                  ))}
+                </div>
               </div>
               <div>
-                <p className={uiTokens.color.mutedText}>인덱스</p>
-                <p className={`mt-1 font-mono font-bold ${uiTokens.color.headingText}`}>{claim.evidence.rule.index}</p>
+                <p className={uiTokens.color.mutedText}>위험 등급</p>
+                <p className={`mt-1 font-bold ${uiTokens.color.danger}`}>{claim.evidence.rule.severity}</p>
               </div>
+            </div>
+            <div>
+              <p className={uiTokens.color.mutedText}>인덱스</p>
+              <p className={`mt-1 font-mono font-bold ${uiTokens.color.headingText}`}>{claim.evidence.rule.index}</p>
             </div>
             <div>
               <p className={uiTokens.color.mutedText}>근거 규정</p>
@@ -463,6 +472,7 @@ const EvidenceDrawer = memo(function EvidenceDrawer({
 export function ComplianceReviewDetailPage() {
   const { reviewId } = useParams()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const comIdParam = reviewId === 'detail' ? searchParams.get('comId') : reviewId
   const comId = Number(comIdParam)
@@ -558,13 +568,13 @@ export function ComplianceReviewDetailPage() {
         comReviewComments: comment.trim(),
         comStatus,
       })
-      setSubmitMessage('최종 판단이 제출되었습니다.')
+      navigate('/evidence-pack')
     } catch {
       setSubmitMessage('최종 판단 제출에 실패했습니다. 잠시 후 다시 시도해 주세요.')
     } finally {
       setIsSubmittingFinalDecision(false)
     }
-  }, [comId, comment, selectedDecision, user.userId])
+  }, [comId, comment, navigate, selectedDecision, user.userId])
 
   return (
     <div className="w-full pb-12">
@@ -604,7 +614,7 @@ export function ComplianceReviewDetailPage() {
           onCommentChange={setComment}
           canSubmitFinalDecision={canSubmitFinalDecision}
           isSubmitting={isSubmittingFinalDecision}
-          submitMessage={submitMessage || (processStatus ? '' : '추가 자료 요청은 API 처리 상태가 없어 제출할 수 없습니다.')}
+          submitMessage={submitMessage}
           onSubmitFinalDecision={submitFinalDecision}
         />
       </div>

@@ -1,6 +1,6 @@
 import type { RiskLevel } from '../../types'
 
-export type ComplianceReviewListStatus = 'PENDING' | 'AI_FAILED'
+export type ComplianceReviewListStatus = 'PENDING' | 'REVIEWING' | 'AI_FAILED'
 
 export type ComplianceReviewListResponse = Array<{
   comId: number
@@ -33,6 +33,7 @@ export type ComplianceReviewRow = {
 
 export type ComplianceReviewDetailResponse = {
   comScore: number | null
+  comContent: string
   claims: Array<{
     claimsTitle: string | null
     claimsType: string | null
@@ -91,6 +92,7 @@ type ComplianceReviewDetailFact = ComplianceReviewDetailClaimFile['facts'][numbe
 export type ComplianceReviewClaim = {
   claimId: string
   statement: string
+  reviewItem: string
   type: string
   verificationResult: string
   riskLevel: RiskLevel | null
@@ -99,6 +101,7 @@ export type ComplianceReviewClaim = {
     productTruth: Record<string, string>
     rule: {
       ruleId: string
+      ruleName: string
       requiredItems: string[]
       severity: string
       index: string
@@ -143,7 +146,7 @@ function isRiskLevel(value: unknown): value is RiskLevel {
 }
 
 function isComplianceReviewListStatus(value: unknown): value is ComplianceReviewListStatus {
-  return value === 'PENDING' || value === 'AI_FAILED'
+  return value === 'PENDING' || value === 'REVIEWING' || value === 'AI_FAILED'
 }
 
 function isComplianceReviewListItem(value: unknown): value is ComplianceReviewListResponse[number] {
@@ -286,6 +289,7 @@ function isComplianceReviewDetailResponse(value: unknown): value is ComplianceRe
 
   return (
     (candidate.comScore === null || isNumber(candidate.comScore))
+    && typeof candidate.comContent === 'string'
     && Array.isArray(candidate.claims)
     && candidate.claims.every(isComplianceReviewDetailClaim)
   )
@@ -358,6 +362,12 @@ function joinDisplayValues(values: Array<string | null | undefined>) {
   return nonEmptyValues.join(', ') || '-'
 }
 
+function formatFileLocation(value: string | null | undefined) {
+  const locations = value?.split(/\r?\n/).map((location) => location.trim()).filter(Boolean)
+
+  return locations?.join(', ')
+}
+
 function normalizeProductTruth(claim: ComplianceReviewDetailClaim) {
   const productFiles = claim.claimFiles.filter((file) => file.fileType === 'PRODUCT')
   const productTruth: Record<string, string> = {}
@@ -365,26 +375,8 @@ function normalizeProductTruth(claim: ComplianceReviewDetailClaim) {
   if (productFiles.length > 0) {
     productTruth.파일명 = joinDisplayValues(productFiles.map((file) => file.fileName))
     productTruth['파일 유형'] = joinDisplayValues(productFiles.map((file) => file.fileKind ?? file.fileType))
-    productTruth['페이지 위치'] = joinDisplayValues(productFiles.map((file) => file.pageLocation))
-    productTruth['파일 내 위치'] = joinDisplayValues(productFiles.map((file) => file.fileLocation))
-    productTruth.섹션 = joinDisplayValues(productFiles.map((file) => file.section))
-    productTruth['참조 비고'] = joinDisplayValues(productFiles.map((file) => file.refNote))
+    productTruth['참조 위치'] = joinDisplayValues(productFiles.map((file) => formatFileLocation(file.fileLocation)))
   }
-
-  productFiles.flatMap((file) => file.facts).forEach((fact, index) => {
-    const title = display(fact.factTitle)
-    const value = `${display(fact.factValue)}${fact.factUnit ?? ''}`
-
-    productTruth[title !== '-' ? title : `팩트 ${index + 1}`] = value
-
-    if (fact.factCondition) {
-      productTruth[`${title} 조건`] = fact.factCondition
-    }
-
-    if (fact.factFileLocation || fact.factPageLocation || fact.factSection) {
-      productTruth[`${title} 위치`] = [fact.factPageLocation, fact.factSection, fact.factFileLocation].filter(Boolean).join(' / ')
-    }
-  })
 
   return productTruth
 }
@@ -393,6 +385,18 @@ function normalizeRule(claim: ComplianceReviewDetailClaim) {
   const firstRule = claim.rules[0]
   const ruleFiles = claim.claimFiles.filter((file) => file.fileType === 'RULE')
   const firstRuleFile = ruleFiles[0]
+
+  if (!firstRule && ruleFiles.length === 0) {
+    return {
+      ruleId: '없음',
+      ruleName: '-',
+      requiredItems: ['참고된 내용 없음'],
+      severity: '-',
+      index: '-',
+      source: '참고된 내용 없음',
+    }
+  }
+
   const requiredItems = claim.rules.map((rule) => rule.ruleRequired).filter((item): item is string => Boolean(item))
   const claimKeywords = claim.claimKeywords.map((keyword) => keyword.keywordContent)
   const ruleKeywords = claim.rules.flatMap((rule) => rule.keywords.map((keyword) => keyword.keywordContent))
@@ -401,6 +405,7 @@ function normalizeRule(claim: ComplianceReviewDetailClaim) {
 
   return {
     ruleId: firstRule?.ruleUniqueId ?? (firstRule ? String(firstRule.ruleId) : '-'),
+    ruleName: firstRule?.ruleTitle ?? '-',
     requiredItems: requiredItems.length > 0 ? requiredItems : claimKeywords.length > 0 ? claimKeywords : ruleKeywords,
     severity: firstRule?.ruleRiskLevel ?? '-',
     index: firstRuleFile?.fileName ?? '-',
@@ -457,7 +462,8 @@ export function normalizeComplianceReviewDetailResponse(response: ComplianceRevi
     score: response.comScore,
     claims: response.claims.map((claim, index) => ({
       claimId: `CLM-${String(index + 1).padStart(3, '0')}`,
-      statement: display(claim.claimsTitle) !== '-' ? display(claim.claimsTitle) : `Claim ${index + 1}`,
+      statement: display(claim.claimsOriginal) !== '-' ? display(claim.claimsOriginal) : `Claim ${index + 1}`,
+      reviewItem: display(claim.claimsTitle),
       type: display(claim.claimsType),
       verificationResult: display(claim.claimsAiVerified),
       riskLevel: claim.claimsRiskLevel,
@@ -469,13 +475,13 @@ export function normalizeComplianceReviewDetailResponse(response: ComplianceRevi
         revision: {
           original: display(claim.claimsOriginal),
           suggested: display(claim.claimsSuggested),
-          additionalNotice: display(claim.claimsDisclaimer),
+          additionalNotice: claim.claimsDisclaimer?.trim() || '없음',
           reason: display(claim.claimsReason),
         },
       },
     })),
     evidenceSources: normalizeEvidenceSources(response),
-    originalText: response.claims.map((claim) => claim.claimsOriginal).filter((value): value is string => Boolean(value)).join('\n\n'),
+    originalText: response.comContent,
   }
 }
 

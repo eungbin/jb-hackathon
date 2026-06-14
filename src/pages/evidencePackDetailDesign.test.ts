@@ -44,4 +44,21 @@ describe('evidence pack detail design', () => {
     expect(detailSource).not.toContain('Sig:')
     expect(detailSource).not.toContain('DecisionBadge')
   })
+
+  it('shows original claim text before AI judgment in the claim column', () => {
+    const detailSource = sources['../domains/evidence-pack/pages/EvidencePackDetailPage.tsx']
+
+    expect(detailSource).toMatch(/<td className=\{`\$\{uiTokens\.spacing\.tableCellRelaxed\} font-semibold \$\{uiTokens\.color\.headingText\}`\}>\s*<div>\{result\.original\}<\/div>\s*<p className=\{`mt-1 \$\{uiTokens\.typography\.helper\}`\}>AI 판단: \{result\.claim\}<\/p>\s*<p className=\{`mt-1 \$\{uiTokens\.typography\.helper\}`\}>권고: \{result\.suggested\}<\/p>/)
+    expect(detailSource).not.toContain('기존: {result.original}')
+  })
+
+  it('places the review status badge with the evidence pack badges instead of product metadata', () => {
+    const detailSource = sources['../domains/evidence-pack/pages/EvidencePackDetailPage.tsx']
+
+    expect(detailSource).toContain('title="최종 Evidence Pack - Sealed Review Record"')
+    expect(detailSource).toContain('최종 Evidence Pack - Sealed Review Record')
+    expect(detailSource).toMatch(/<Badge tone="green">IMMUTABLE<\/Badge>\s*<Badge tone="blue">SOURCE OF TRUTH<\/Badge>\s*<Badge tone="purple">Sealed Record<\/Badge>\s*<StatusBadge status=\{detail\.comStatus\} \/>/)
+    expect(detailSource).not.toContain('심사 처리 상태')
+    expect(detailSource).not.toContain('className="flex flex-wrap items-center gap-3"')
+  })
 })

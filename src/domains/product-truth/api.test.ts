@@ -46,7 +46,7 @@ describe('normalizeProductListResponse', () => {
             factType: 'RATE',
             valueData: '3.5%',
             condition: '급여이체 고객 한정',
-            sourceLocator: '1페이지 line 9',
+            sourceLocator: '1페이지\n9번째 줄',
             note: '2024년 1월 기준',
             sourceFile: '상품설명서.pdf · 상품설명서',
           },

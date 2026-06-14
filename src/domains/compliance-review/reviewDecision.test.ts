@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getComplianceProcessStatus } from './reviewDecision'
+import { decisions, getComplianceProcessStatus } from './reviewDecision'
 
 describe('getComplianceProcessStatus', () => {
   it.each([
@@ -11,7 +11,8 @@ describe('getComplianceProcessStatus', () => {
     expect(getComplianceProcessStatus(decision)).toBe(status)
   })
 
-  it('does not map additional material requests to an unsupported status', () => {
-    expect(getComplianceProcessStatus('추가 자료 요청')).toBeNull()
+  it('only exposes actionable final decision options', () => {
+    expect(decisions).toEqual(['승인', '조건부 승인', '수정 요청', '반려'])
+    expect(decisions).not.toContain('추가 자료 요청')
   })
 })

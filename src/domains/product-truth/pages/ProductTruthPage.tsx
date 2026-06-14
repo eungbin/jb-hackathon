@@ -142,7 +142,7 @@ export function ProductTruthPage() {
               <td className={uiTokens.spacing.tableCellRelaxed}>{fact.factType}</td>
               <td className={uiTokens.spacing.tableCellRelaxed}>{fact.valueData}</td>
               <td className={uiTokens.spacing.tableCellRelaxed}>{fact.condition}</td>
-              <td className={uiTokens.spacing.tableCellRelaxed}>{fact.sourceLocator}</td>
+              <td className={`${uiTokens.spacing.tableCellRelaxed} whitespace-pre-line`}>{fact.sourceLocator}</td>
               <td className={uiTokens.spacing.tableCellRelaxed}>{fact.sourceFile}</td>
               <td className={uiTokens.spacing.tableCellRelaxed}>{fact.note}</td>
             </tr>

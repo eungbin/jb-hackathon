@@ -30,6 +30,19 @@ describe('normalizeComplianceReviewListResponse', () => {
         comRegistAt: 'bad-date',
         comReleaseAt: null,
       },
+      {
+        comId: 3,
+        comUniqueId: 'CNT-00003',
+        comTitle: 'Reviewing content',
+        productName: 'JB Review Product',
+        comChannel: 'SNS',
+        comStatus: 'REVIEWING',
+        riskLevel: 'LOW',
+        claimsCount: 1,
+        userName: 'Reviewer',
+        comRegistAt: '2024-07-21T10:00:00',
+        comReleaseAt: '2024-08-02T09:00:00',
+      },
     ])
 
     expect(rows).toEqual([
@@ -61,6 +74,20 @@ describe('normalizeComplianceReviewListResponse', () => {
         requestedAt: 'bad-date',
         plannedPublishDate: '-',
       },
+      {
+        reviewId: '3',
+        contentId: 'CNT-00003',
+        title: 'Reviewing content',
+        productName: 'JB Review Product',
+        channel: 'SNS',
+        channelCode: 'SNS',
+        status: 'REVIEWING',
+        riskLevel: 'LOW',
+        claimCount: 1,
+        requester: 'Reviewer',
+        requestedAt: '2024.07.21 10:00',
+        plannedPublishDate: '2024.08.02',
+      },
     ])
   })
 })
@@ -85,6 +112,19 @@ describe('fetchComplianceReviewList', () => {
           comRegistAt: '2024-07-20T14:30:00',
           comReleaseAt: '2024-08-01T09:00:00',
         },
+        {
+          comId: 2,
+          comUniqueId: 'CNT-00002',
+          comTitle: 'Reviewing content',
+          productName: 'JB Review Product',
+          comChannel: 'SNS',
+          comStatus: 'REVIEWING',
+          riskLevel: 'LOW',
+          claimsCount: 1,
+          userName: 'Reviewer',
+          comRegistAt: '2024-07-21T10:00:00',
+          comReleaseAt: '2024-08-02T09:00:00',
+        },
       ]), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
@@ -98,6 +138,7 @@ describe('fetchComplianceReviewList', () => {
     expect(rows[0]?.reviewId).toBe('1')
     expect(rows[0]?.contentId).toBe('CNT-00001')
     expect(rows[0]?.status).toBe('PENDING')
+    expect(rows[1]?.status).toBe('REVIEWING')
   })
 })
 
@@ -105,6 +146,7 @@ describe('normalizeComplianceReviewDetailResponse', () => {
   it('maps /compliance/{comId} response to review detail data', () => {
     const detail = normalizeComplianceReviewDetailResponse({
       comScore: 85,
+      comContent: '가입만 하면 우대금리를 받을 수 있습니다.\n\n최저 연 4.5%로 내 집 마련의 꿈을 이루세요.',
       claims: [
         {
           claimsTitle: '우대금리 조건 미기재',
@@ -124,7 +166,7 @@ describe('normalizeComplianceReviewDetailResponse', () => {
               fileUrl: 'http://localhost:8080/files/product.pdf',
               fileKind: '상품설명서',
               pageLocation: '1페이지',
-              fileLocation: '1페이지 3번째 줄',
+              fileLocation: '1페이지 3번째 줄\n1페이지 4번째 줄',
               section: '제1조',
               refNote: '우대금리 조건 관련 조항',
               facts: [
@@ -175,9 +217,11 @@ describe('normalizeComplianceReviewDetailResponse', () => {
     })
 
     expect(detail.score).toBe(85)
+    expect(detail.originalText).toBe('가입만 하면 우대금리를 받을 수 있습니다.\n\n최저 연 4.5%로 내 집 마련의 꿈을 이루세요.')
     expect(detail.claims[0]).toMatchObject({
       claimId: 'CLM-001',
-      statement: '우대금리 조건 미기재',
+      statement: '최저 연 4.5%로 내 집 마련의 꿈을 이루세요.',
+      reviewItem: '우대금리 조건 미기재',
       type: '허위·과장 광고',
       verificationResult: '조건누락',
       riskLevel: 'HIGH',
@@ -192,14 +236,14 @@ describe('normalizeComplianceReviewDetailResponse', () => {
         },
       },
     })
-    expect(detail.claims[0]?.evidence.productTruth).toMatchObject({
+    expect(detail.claims[0]?.evidence.productTruth).toEqual({
       파일명: '상품설명서.pdf',
       '파일 유형': '상품설명서',
-      '참조 비고': '우대금리 조건 관련 조항',
-      기본금리: '3.5%',
+      '참조 위치': '1페이지 3번째 줄, 1페이지 4번째 줄',
     })
     expect(detail.claims[0]?.evidence.rule).toMatchObject({
       ruleId: 'FIN-2024-001',
+      ruleName: '우대금리 고지 의무',
       requiredItems: ['조건을 명시하세요.'],
       severity: 'HIGH',
       index: '금융광고심의규정.pdf',
@@ -210,6 +254,7 @@ describe('normalizeComplianceReviewDetailResponse', () => {
   it('keeps nullable claim fields display-safe', () => {
     const detail = normalizeComplianceReviewDetailResponse({
       comScore: null,
+      comContent: '원문 컨텐츠',
       claims: [
         {
           claimsTitle: null,
@@ -230,8 +275,18 @@ describe('normalizeComplianceReviewDetailResponse', () => {
 
     expect(detail.score).toBeNull()
     expect(detail.claims[0]?.statement).toBe('Claim 1')
+    expect(detail.claims[0]?.reviewItem).toBe('-')
     expect(detail.claims[0]?.riskLevel).toBeNull()
     expect(detail.claims[0]?.riskLabel).toBe('미정')
+    expect(detail.claims[0]?.evidence.rule).toEqual({
+      ruleId: '없음',
+      ruleName: '-',
+      requiredItems: ['참고된 내용 없음'],
+      severity: '-',
+      index: '-',
+      source: '참고된 내용 없음',
+    })
+    expect(detail.claims[0]?.evidence.revision.additionalNotice).toBe('없음')
     expect(detail.claims[0]?.evidence.revision.reason).toBe('-')
   })
 })
@@ -244,6 +299,7 @@ describe('fetchComplianceReviewDetail', () => {
 
       return new Response(JSON.stringify({
         comScore: 85,
+        comContent: '가입만 하면 우대금리를 받을 수 있습니다.',
         claims: [
           {
             claimsTitle: '우대금리 조건 미기재',
@@ -286,7 +342,9 @@ describe('fetchComplianceReviewDetail', () => {
     expect(calls[0].url).toBe('/api/compliance/1')
     expect(calls[0].init).toBeUndefined()
     expect(detail.score).toBe(85)
-    expect(detail.claims[0]?.statement).toBe('우대금리 조건 미기재')
+    expect(detail.originalText).toBe('가입만 하면 우대금리를 받을 수 있습니다.')
+    expect(detail.claims[0]?.statement).toBe('최저 연 4.5%로 내 집 마련의 꿈을 이루세요.')
+    expect(detail.claims[0]?.reviewItem).toBe('우대금리 조건 미기재')
   })
 })
 

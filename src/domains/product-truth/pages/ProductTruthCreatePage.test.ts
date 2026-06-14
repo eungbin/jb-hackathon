@@ -19,6 +19,31 @@ describe('ProductTruthCreatePage API integration', () => {
     expect(source).toContain('uploadedFiles')
   })
 
+  it('shows a spinner while AI draft is being created', () => {
+    const source = pageSources['./ProductTruthCreatePage.tsx']
+
+    expect(source).toContain('Loader2')
+    expect(source).toContain('isAnalyzing && <Loader2')
+    expect(source).toContain('animate-spin')
+  })
+
+  it('navigates to Product Truth Layer after successful registration', () => {
+    const source = pageSources['./ProductTruthCreatePage.tsx']
+
+    expect(source).toContain('await createProduct')
+    expect(source).toContain("navigate('/product-truth')")
+    expect(source).not.toContain('Product ID: ${productId}')
+  })
+
+  it('does not show version in the registration summary', () => {
+    const source = pageSources['./ProductTruthCreatePage.tsx']
+
+    const summarySource = source.slice(source.indexOf('<Card title="등록 요약"'), source.indexOf('<Card title="상품 기본정보"'))
+
+    expect(summarySource).not.toContain('버전')
+    expect(summarySource).not.toContain('form.versionLabel')
+  })
+
   it('does not show source document version or effective date columns', () => {
     const source = pageSources['./ProductTruthCreatePage.tsx']
 
@@ -80,6 +105,13 @@ describe('ProductTruthCreatePage API integration', () => {
 
     expect(source).not.toContain("'UNIT'")
     expect(source).not.toContain('fact.unit')
+  })
+
+  it('renders Product Fact source locator line breaks', () => {
+    const source = pageSources['./ProductTruthCreatePage.tsx']
+
+    expect(source).toContain('`${uiTokens.spacing.tableCell} whitespace-pre-line`')
+    expect(source).toContain("{fact.sourceLocator || '-'}")
   })
 
   it('limits Product Fact rows to five per page', () => {

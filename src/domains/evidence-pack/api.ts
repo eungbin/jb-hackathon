@@ -306,21 +306,26 @@ function buildSource(claim: EvidencePackDetailClaim) {
   return joinDisplayValues(claim.claimFiles.map((file) => file.fileName))
 }
 
+function joinLocatorParts(values: Array<string | null | undefined>) {
+  return values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)).join(' / ')
+}
+
+function buildFactLocator(fact: EvidencePackDetailFact) {
+  return joinLocatorParts([fact.factPageLocation, fact.factSection, fact.factFileLocation])
+}
+
+function buildClaimFileLocator(file: EvidencePackDetailClaimFile) {
+  const fileLocator = joinLocatorParts([file.pageLocation, file.section, file.fileLocation])
+
+  if (fileLocator) {
+    return fileLocator
+  }
+
+  return joinDisplayValues(file.facts.map(buildFactLocator))
+}
+
 function buildLocator(claim: EvidencePackDetailClaim) {
-  const productFacts = claim.claimFiles.filter((file) => file.fileType === 'PRODUCT').flatMap((file) => file.facts)
-  const firstFact = productFacts[0]
-
-  if (firstFact) {
-    return [firstFact.factPageLocation, firstFact.factSection, firstFact.factFileLocation].filter(Boolean).join(' / ') || '-'
-  }
-
-  const firstFile = claim.claimFiles[0]
-
-  if (!firstFile) {
-    return '-'
-  }
-
-  return [firstFile.pageLocation, firstFile.section, firstFile.fileLocation].filter(Boolean).join(' / ') || '-'
+  return joinDisplayValues(claim.claimFiles.map(buildClaimFileLocator))
 }
 
 export function normalizeEvidencePackResultsResponse(response: EvidencePackResultsResponse): EvidencePackRow[] {

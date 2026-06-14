@@ -122,6 +122,28 @@ describe('second-pass design token usage', () => {
     expect(contentSource).not.toContain('productIdOptionsByCategory')
   })
 
+  it('content registration derives Product Truth summary from the selected product', () => {
+    const contentSource = secondPassSources['../domains/content/pages/ContentCreatePage.tsx']
+
+    expect(contentSource).toContain('selectedProduct')
+    expect(contentSource).toContain('<ProductTruthPanel product={selectedProduct} />')
+    expect(contentSource).toContain('product.productName')
+    expect(contentSource).toContain('product.productCode')
+    expect(contentSource).toContain('product.productCategory')
+    expect(contentSource).not.toContain('JB 청년우대 적금')
+    expect(contentSource).not.toContain('만 19~34세')
+    expect(contentSource).not.toContain('연 7.0%')
+  })
+
+  it('content registration uses generic compliance checklist copy', () => {
+    const contentSource = secondPassSources['../domains/content/pages/ContentCreatePage.tsx']
+
+    expect(contentSource).toContain('상품별 세부 조건과 제한 사항이 원문에 충분히 설명되었는지 확인합니다.')
+    expect(contentSource).toContain('소비자가 오인할 수 있는 최상급·단정적 표현은 객관적 근거와 함께 사용해야 합니다.')
+    expect(contentSource).not.toContain('금리 오인 방지')
+    expect(contentSource).not.toContain('가입 조건 확인')
+  })
+
   it('content registration does not collect target customers', () => {
     const contentSource = secondPassSources['../domains/content/pages/ContentCreatePage.tsx']
 
@@ -211,6 +233,14 @@ describe('second-pass design token usage', () => {
     expect(detailSource).toContain('comStatus')
     expect(detailSource).toContain('onSubmitFinalDecision={submitFinalDecision}')
     expect(detailSource).toContain('최종 판단 제출')
+  })
+
+  it('compliance review detail navigates to Evidence Pack after final decision success', () => {
+    const detailSource = secondPassSources['../domains/compliance-review/pages/ComplianceReviewDetailPage.tsx']
+
+    expect(detailSource).toContain('useNavigate')
+    expect(detailSource).toContain("navigate('/evidence-pack')")
+    expect(detailSource.indexOf('await processComplianceReview')).toBeLessThan(detailSource.indexOf("navigate('/evidence-pack')"))
   })
 
   it('content registration lets channel selection span the full form width', () => {

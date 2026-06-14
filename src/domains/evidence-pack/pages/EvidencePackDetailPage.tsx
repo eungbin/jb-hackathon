@@ -124,16 +124,6 @@ function ProductMetadataPanel({ detail }: { detail: EvidencePackResultDetail }) 
           </div>
         ))}
       </dl>
-
-      <div className={`mt-6 ${uiTokens.radius.panel} border ${uiTokens.color.primaryBorder} ${uiTokens.color.primarySurface} ${uiTokens.spacing.cardCompact}`}>
-        <div className="flex items-center gap-2">
-          <ShieldCheck size={22} className={uiTokens.color.primary} />
-          <p className={`text-base font-bold leading-6 ${uiTokens.color.primary}`}>심사 처리 상태</p>
-        </div>
-        <div className="mt-3">
-          <StatusBadge status={detail.comStatus} />
-        </div>
-      </div>
     </aside>
   )
 }
@@ -257,6 +247,7 @@ export function EvidencePackDetailPage() {
         <Badge tone="green">IMMUTABLE</Badge>
         <Badge tone="blue">SOURCE OF TRUTH</Badge>
         <Badge tone="purple">Sealed Record</Badge>
+        <StatusBadge status={detail.comStatus} />
       </div>
       <div className={`${uiTokens.spacing.section} ${uiTokens.spacing.stack} xl:grid-cols-[2fr_1fr]`}>
         <AuditTimeline detail={detail} />
@@ -283,8 +274,8 @@ export function EvidencePackDetailPage() {
         {sortedClaimResults.map((result: EvidencePackClaimResult) => (
           <tr key={result.claim}>
             <td className={`${uiTokens.spacing.tableCellRelaxed} font-semibold ${uiTokens.color.headingText}`}>
-              <div>{result.claim}</div>
-              <p className={`mt-1 ${uiTokens.typography.helper}`}>기존: {result.original}</p>
+              <div>{result.original}</div>
+              <p className={`mt-1 ${uiTokens.typography.helper}`}>AI 판단: {result.claim}</p>
               <p className={`mt-1 ${uiTokens.typography.helper}`}>권고: {result.suggested}</p>
             </td>
             <td className={uiTokens.spacing.tableCellRelaxed}>

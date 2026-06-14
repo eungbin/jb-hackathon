@@ -1,6 +1,6 @@
 import { useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { CheckCircle2, Plus, ShieldAlert } from 'lucide-react'
+import { CheckCircle2, Loader2, Plus, ShieldAlert } from 'lucide-react'
 import { Button, Card, DataTable, Field, InputStatusBadge, PageHeader, SelectField, TextareaField } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import type { ProductFact, SourceDocument } from '../../../types'
@@ -101,9 +101,9 @@ export function ProductTruthCreatePage() {
     setIsSubmitting(true)
 
     try {
-      const productId = await createProduct(form, uploadedFiles, user.userId)
-      setRegisteredStatus(`상품 등록이 완료되었습니다. Product ID: ${productId}`)
+      await createProduct(form, uploadedFiles, user.userId)
       setErrors([])
+      navigate('/product-truth')
     } catch {
       setErrors(['상품 등록 요청에 실패했습니다. 입력값과 업로드 파일을 확인한 뒤 다시 시도해 주세요.'])
     } finally {
@@ -240,7 +240,8 @@ export function ProductTruthCreatePage() {
             </DataTable>
             <div className="mt-4 flex justify-end">
               <Button variant="secondary" disabled={isAnalyzing || uploadedFiles.length === 0} onClick={analyzeDraft}>
-                {isAnalyzing ? 'AI 초안 작성 중' : '근거문서 기반 AI 초안 작성'}
+                {isAnalyzing && <Loader2 className="animate-spin" size={16} />}
+                <span>{isAnalyzing ? 'AI 초안 작성 중' : '근거문서 기반 AI 초안 작성'}</span>
               </Button>
             </div>
           </Card>
@@ -249,10 +250,6 @@ export function ProductTruthCreatePage() {
               <div className="flex justify-between gap-4">
                 <dt className={uiTokens.color.mutedText}>상품명</dt>
                 <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.productName}</dd>
-              </div>
-              <div className="flex justify-between gap-4">
-                <dt className={uiTokens.color.mutedText}>버전</dt>
-                <dd className={`font-semibold ${uiTokens.color.headingText}`}>{form.versionLabel}</dd>
               </div>
               <div className="flex justify-between gap-4">
                 <dt className={uiTokens.color.mutedText}>근거 문서</dt>
@@ -320,7 +317,7 @@ export function ProductTruthCreatePage() {
                   <td className={`${uiTokens.spacing.tableCell} font-semibold ${uiTokens.color.headingText}`}>{fact.factName}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.value}</td>
                   <td className={uiTokens.spacing.tableCell}>{fact.condition || '-'}</td>
-                  <td className={uiTokens.spacing.tableCell}>{fact.sourceLocator || '-'}</td>
+                  <td className={`${uiTokens.spacing.tableCell} whitespace-pre-line`}>{fact.sourceLocator || '-'}</td>
                   <td className={`${uiTokens.spacing.tableCell} whitespace-nowrap`}>
                     <InputStatusBadge status={fact.inputStatus} />
                   </td>

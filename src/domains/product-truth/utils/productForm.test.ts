@@ -111,7 +111,7 @@ describe('applyProductAiAnalysisResult', () => {
       displayValue: '3.5',
       condition: '급여이체 고객 한정',
       sourceDocumentId: 'DOC-001',
-      sourceLocator: '1페이지 line 9',
+      sourceLocator: '1페이지\n9번째 줄',
       page: '1페이지',
       section: '제1조',
       inputStatus: 'COMPLETE',

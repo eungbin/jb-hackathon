@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { AlertTriangle, CalendarCheck, ClipboardList, Search, UserCheck } from 'lucide-react'
+import { AlertTriangle, CalendarCheck, ClipboardList, Loader2, Search, UserCheck } from 'lucide-react'
 import type { FormEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -55,6 +55,14 @@ const riskSortRank: Record<RiskLevel, number> = {
   HIGH: 3,
   CRITICAL: 4,
 }
+
+const reviewActionLabels: Record<ComplianceReviewRow['status'], string> = {
+  PENDING: '심사하기',
+  REVIEWING: '리뷰중...',
+  AI_FAILED: '리뷰불가',
+}
+
+const reviewActionDisabledStatuses = new Set<ComplianceReviewRow['status']>(['REVIEWING', 'AI_FAILED'])
 
 const summaryCardConfigs: Array<{
   label: string
@@ -211,6 +219,21 @@ function ReviewerCell({ name, department }: { name: string; department?: string 
         {department && <span className="block text-xs font-normal text-slate-400">{department}</span>}
       </span>
     </div>
+  )
+}
+
+function ReviewActionCell({ item }: { item: ComplianceReviewRow }) {
+  const actionButton = (
+    <Button className="h-9 px-3" disabled={reviewActionDisabledStatuses.has(item.status)}>
+      {item.status === 'REVIEWING' && <Loader2 className="animate-spin" size={14} />}
+      <span>{reviewActionLabels[item.status]}</span>
+    </Button>
+  )
+
+  return reviewActionDisabledStatuses.has(item.status) ? actionButton : (
+    <Link to={`/compliance-review/${item.reviewId}`}>
+      {actionButton}
+    </Link>
   )
 }
 
@@ -454,9 +477,7 @@ export function ComplianceReviewListPage() {
                 <td className="px-3 py-4">{item.requestedAt}</td>
                 <td className="px-3 py-4">{item.plannedPublishDate}</td>
                 <td className="px-3 py-4">
-                  <Link to={`/compliance-review/${item.reviewId}`}>
-                    <Button className="h-9 px-3">심의하기</Button>
-                  </Link>
+                  <ReviewActionCell item={item} />
                 </td>
               </tr>
             ))}

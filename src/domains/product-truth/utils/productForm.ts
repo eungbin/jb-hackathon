@@ -87,8 +87,14 @@ function findAnalysisFile(result: ProductAiAnalyzeResponse, fileIndex: number) {
   return result.files?.find((file) => file.fileIndex === fileIndex) ?? null
 }
 
+function formatFileLocation(value: string | null | undefined) {
+  const lineMatch = value?.trim().match(/^line\s+(.+)$/i)
+
+  return lineMatch ? `${lineMatch[1].trim()}번째 줄` : value
+}
+
 function buildSourceLocator(pageLocation: string | null | undefined, fileLocation: string | null | undefined) {
-  return [pageLocation, fileLocation].filter(Boolean).join(' ')
+  return [pageLocation, formatFileLocation(fileLocation)].filter(Boolean).join('\n')
 }
 
 export function applyProductAiAnalysisResult(

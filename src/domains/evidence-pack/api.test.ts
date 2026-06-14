@@ -204,7 +204,7 @@ describe('normalizeEvidencePackResultDetailResponse', () => {
       basis: '우대금리 적용 조건이 광고 문구에 명시되지 않아 소비자 오인 가능성이 있습니다.',
       riskLevel: 'HIGH',
       source: '상품설명서.pdf, 금융광고심의규정.pdf',
-      locator: '1페이지 / 제1조 / 1페이지 3번째 줄',
+      locator: '1페이지 / 제1조 / 1페이지 3번째 줄, 3페이지 / 제7조 / 3페이지 2번째 줄',
       original: '최저 연 4.5%로 내 집 마련의 꿈을 이루세요.',
       suggested: '연 4.5%~8.2% (신용등급에 따라 상이)로 내 집 마련의 꿈을 이루세요.',
       disclaimer: '실제 적용 금리는 고객 신용등급에 따라 상이합니다.',

@@ -215,8 +215,14 @@ function buildValueData(fact: ProductListResponse[number]['facts'][number]) {
   return `${value === '-' ? '' : value}${unit === '-' ? '' : unit}`
 }
 
+function formatFileLocation(value: string | null | undefined) {
+  const lineMatch = value?.trim().match(/^line\s+(.+)$/i)
+
+  return lineMatch ? `${lineMatch[1].trim()}번째 줄` : value
+}
+
 function buildSourceLocator(fact: ProductListResponse[number]['facts'][number]) {
-  return [fact.factPageLocation, fact.factFileLocation].filter(Boolean).join(' ') || '-'
+  return [fact.factPageLocation, formatFileLocation(fact.factFileLocation)].filter(Boolean).join('\n') || '-'
 }
 
 function buildSourceFile(fact: ProductListResponse[number]['facts'][number]) {

@@ -89,4 +89,11 @@ describe('route page headers', () => {
     expect(source).toContain('const [items, setItems]')
     expect(source).not.toContain('productTruthData')
   })
+
+  it('renders Product Truth fact source locator line breaks', () => {
+    const source = pageSources['../domains/product-truth/pages/ProductTruthPage.tsx']
+
+    expect(source).toContain('`${uiTokens.spacing.tableCellRelaxed} whitespace-pre-line`')
+    expect(source).toContain('{fact.sourceLocator}')
+  })
 })

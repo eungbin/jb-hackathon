@@ -1,7 +1,7 @@
 import type { FormEvent, ReactNode } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertTriangle, BadgeCheck, CalendarDays, ChevronDown, FileCheck2, FileSpreadsheet, FileText, Info, Send } from 'lucide-react'
+import { AlertTriangle, BadgeCheck, CalendarDays, ChevronDown, Info, Send } from 'lucide-react'
 import { Button, PageHeader } from '../../../components/ui'
 import { uiTokens } from '../../../design/tokens'
 import { useAuth } from '../../auth/AuthContext'
@@ -131,16 +131,7 @@ function ProductFactRow({ label, value, emphasized = false }: { label: string; v
   )
 }
 
-function ReferenceDocument({ icon, label }: { icon: ReactNode; label: string }) {
-  return (
-    <div className={`flex h-7 items-center gap-1 ${uiTokens.radius.chip} border ${uiTokens.color.border} ${uiTokens.color.surfaceMuted} px-2 py-1 text-xs leading-5 ${uiTokens.color.headingText}`}>
-      <span className={uiTokens.color.mutedText}>{icon}</span>
-      {label}
-    </div>
-  )
-}
-
-function ProductTruthPanel() {
+function ProductTruthPanel({ product }: { product: ProductInfo | undefined }) {
   return (
     <aside className={`self-start ${uiTokens.radius.panel} border ${uiTokens.color.border} ${uiTokens.color.surfaceMuted} p-5`}>
       <div className="grid gap-6 xl:sticky xl:top-20">
@@ -156,28 +147,18 @@ function ProductTruthPanel() {
                 <BadgeCheck size={22} />
               </div>
               <div>
-                <h3 className={uiTokens.typography.cardTitle}>JB 청년우대 적금</h3>
+                <h3 className={uiTokens.typography.cardTitle}>{product ? product.productName : '상품을 선택해 주세요'}</h3>
                 <div className={`mt-0.5 flex items-center gap-1 ${uiTokens.typography.helper}`}>
-                  <span>ID: DEP-SAV-001</span>
-                  <span className={`${uiTokens.radius.chip} ${uiTokens.color.primarySurface} px-1 ${uiTokens.color.primary}`}>v202606</span>
+                  <span>ID: {product ? String(product.productId) : '-'}</span>
                 </div>
               </div>
             </div>
 
             <dl className="mt-4 grid gap-4">
-              <ProductFactRow label="가입대상" value="만 19~34세" />
-              <ProductFactRow label="최고금리" value="연 7.0%" emphasized />
-              <ProductFactRow label="납입한도" value="월 30만 원" />
+              <ProductFactRow label="상품 코드" value={product ? product.productCode : '-'} />
+              <ProductFactRow label="상품군" value={product ? product.productCategory : '-'} emphasized />
+              <ProductFactRow label="상품 ID" value={product ? String(product.productId) : '-'} />
             </dl>
-
-            <div className={`mt-4 border-t ${uiTokens.color.borderStrong} pt-3`}>
-              <p className={uiTokens.typography.tableHeader}>연결된 기준 문서</p>
-              <div className="mt-2 grid gap-1">
-                <ReferenceDocument icon={<FileText size={16} />} label="상품설명서.pdf" />
-                <ReferenceDocument icon={<FileCheck2 size={16} />} label="약관_청년우대.pdf" />
-                <ReferenceDocument icon={<FileSpreadsheet size={16} />} label="금리표_202406.xlsx" />
-              </div>
-            </div>
           </div>
         </section>
 
@@ -187,16 +168,16 @@ function ProductTruthPanel() {
             <div className={`${uiTokens.radius.compact} border-l-4 border-amber-500 ${uiTokens.color.surface} py-3 pl-4 pr-3 ${uiTokens.shadow.panel}`}>
               <div className={`flex items-center gap-1 text-xs font-bold leading-4 ${uiTokens.color.warning}`}>
                 <AlertTriangle size={18} />
-                금리 오인 방지
+                표현 근거 확인
               </div>
-              <p className={`mt-1 ${uiTokens.typography.body}`}>최고 금리 표기 시 반드시 기본 금리와 우대 조건을 명시해야 합니다.</p>
+              <p className={`mt-1 ${uiTokens.typography.body}`}>소비자가 오인할 수 있는 최상급·단정적 표현은 객관적 근거와 함께 사용해야 합니다.</p>
             </div>
             <div className={`${uiTokens.radius.compact} border-l-4 border-blue-700 ${uiTokens.color.surface} py-3 pl-4 pr-3 ${uiTokens.shadow.panel}`}>
               <div className={`flex items-center gap-1 text-xs font-bold leading-4 ${uiTokens.color.primary}`}>
                 <Info size={18} />
-                가입 조건 확인
+                조건 고지 확인
               </div>
-              <p className={`mt-1 ${uiTokens.typography.body}`}>청년우대 조건인 연령 제한(만 19~34세)이 명확히 명시되었는지 확인합니다.</p>
+              <p className={`mt-1 ${uiTokens.typography.body}`}>상품별 세부 조건과 제한 사항이 원문에 충분히 설명되었는지 확인합니다.</p>
             </div>
           </div>
         </section>
@@ -217,6 +198,10 @@ export function ContentCreatePage() {
   const selectedProductOptions = useMemo(
     () => products.filter((product) => product.productCategory === request.productCategory),
     [products, request.productCategory],
+  )
+  const selectedProduct = useMemo(
+    () => products.find((product) => product.productId === request.productId),
+    [products, request.productId],
   )
 
   useEffect(() => {
@@ -329,7 +314,7 @@ export function ContentCreatePage() {
               <FieldShell label="콘텐츠 제목" className="md:col-span-2">
                 <input
                   className={`${controlClass} h-[41px]`}
-                  placeholder="예: JB 청년우대 적금 하계 프로모션 푸시"
+                  placeholder="예: 신규 상품 프로모션 앱푸시"
                   value={request.title}
                   onChange={(event) => updateField('title', event.target.value)}
                 />
@@ -402,7 +387,7 @@ export function ContentCreatePage() {
         </div>
       </section>
 
-      <ProductTruthPanel />
+      <ProductTruthPanel product={selectedProduct} />
     </div>
   )
 }
