@@ -42,7 +42,7 @@ const packTableHeaders = [
   { label: '채널', sortKey: 'channel' },
   { label: '심사 상태', sortKey: 'comStatus' },
   { label: '위험등급', sortKey: 'riskLevel' },
-  { label: '확정 시각', sortKey: 'finalizedAt' },
+  { label: '심사 시각', sortKey: 'finalizedAt' },
   { label: '준법관리자', sortKey: 'reviewer' },
   { label: 'Learning', sortKey: 'learningStatus' },
   { label: '액션', sortable: false },
@@ -199,7 +199,7 @@ export function EvidencePackListPage() {
             <SelectField label="채널" value={filters.channel} onChange={(value) => setFilter('channel', value)} options={[{ value: 'ALL', label: '전체 채널' }, { value: 'APP_PUSH', label: '앱푸시' }, { value: 'SNS', label: 'SNS' }, { value: 'BANNER', label: '배너' }, { value: 'SMS', label: 'SMS' }]} />
             <SelectField label="심사 상태" value={filters.status} onChange={(value) => setFilter('status', value)} options={[{ value: 'ALL', label: '전체' }, ...statusOptions.map((status) => ({ value: status, label: complianceStatusLabels[status] }))]} />
             <SelectField label="최고 위험등급" value={filters.risk} onChange={(value) => setFilter('risk', value)} options={[{ value: 'ALL', label: '전체' }, ...riskOptions.map((risk) => ({ value: risk, label: risk })), { value: 'NONE', label: '미정' }]} />
-            <Field label="확정 시각" value={filters.finalizedAt} onChange={(value) => setFilter('finalizedAt', value)} />
+            <Field label="심사 시각" value={filters.finalizedAt} onChange={(value) => setFilter('finalizedAt', value)} />
             <SelectField label="Learning Loop 상태" value={filters.learning} onChange={(value) => setFilter('learning', value)} options={[{ value: 'ALL', label: '전체' }, { value: 'PENDING', label: '러닝루프 대기' }, { value: 'APPROVED', label: '러닝루프 승인' }, { value: 'REJECT', label: '러닝루프 거절' }, { value: 'NONE', label: '미생성' }]} />
             <div className="flex items-end gap-2 xl:justify-end">
               <Button variant="secondary" className="min-w-24" type="button" onClick={resetFilters}>초기화</Button>

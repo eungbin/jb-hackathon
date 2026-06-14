@@ -55,7 +55,7 @@ describe('normalizeEvidencePackResultsResponse', () => {
         channel: 'SMS',
         comStatus: 'CONDITIONALLY_APPROVED',
         riskLevel: null,
-        finalizedAt: '-',
+        finalizedAt: '거절됨',
         reviewer: '-',
         learningStatus: null,
       },

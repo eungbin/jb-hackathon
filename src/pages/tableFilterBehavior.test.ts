@@ -39,6 +39,14 @@ describe('table filter behavior', () => {
     expect(source).toContain('learningStatus')
   })
 
+  it('labels Evidence Pack archive finalized time as review time', () => {
+    const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
+
+    expect(source).toContain("{ label: '심사 시각', sortKey: 'finalizedAt' }")
+    expect(source).toContain('<Field label="심사 시각" value={filters.finalizedAt} onChange={(value) => setFilter(\'finalizedAt\', value)} />')
+    expect(source).not.toContain('확정 시각')
+  })
+
   it('links Evidence Pack detail with compliance id for the detail API', () => {
     const source = pageSources['../domains/evidence-pack/pages/EvidencePackListPage.tsx']
 

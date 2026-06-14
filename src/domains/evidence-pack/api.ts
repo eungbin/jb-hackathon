@@ -338,7 +338,7 @@ export function normalizeEvidencePackResultsResponse(response: EvidencePackResul
     channel: toChannelCode(item.comChannel),
     comStatus: item.comStatus,
     riskLevel: item.maxRiskLevel,
-    finalizedAt: formatIsoDateTime(item.comApprovedAt),
+    finalizedAt: item.comApprovedAt ? formatIsoDateTime(item.comApprovedAt) : '거절됨',
     reviewer: item.approverName?.trim() || '-',
     learningStatus: item.learningStatus,
   }))
